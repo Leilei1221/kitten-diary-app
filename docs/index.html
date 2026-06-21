@@ -1,0 +1,2338 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>奶貓日記</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #212529;
+      --muted: #65717d;
+      --line: #d9dee3;
+      --surface: #ffffff;
+      --soft: #f4f6f8;
+      --brand: #26736d;
+      --brand-dark: #19504d;
+      --warn: #b35b18;
+      --danger: #b42318;
+      --ok: #207548;
+      --sky: #dceef7;
+      --pink: #f6dfe8;
+      --yellow: #fff0c2;
+      --mint: #dff1e7;
+      --shadow: 0 12px 28px rgba(21, 38, 54, .12);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #eef2f4;
+      color: var(--ink);
+      letter-spacing: 0;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 288px minmax(0, 1fr);
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+      grid-column: 1 / -1;
+      min-height: 72px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .mark {
+      width: 48px;
+      height: 48px;
+      flex: 0 0 48px;
+    }
+
+    .brand h1 {
+      font-size: 22px;
+      margin: 0;
+      line-height: 1.1;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .icon-btn, .primary-btn, .ghost-btn, .danger-btn {
+      min-height: 40px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 14px;
+      white-space: nowrap;
+    }
+
+    .primary-btn {
+      background: var(--brand);
+      color: white;
+    }
+
+    .primary-btn:hover {
+      background: var(--brand-dark);
+    }
+
+    .ghost-btn {
+      background: var(--soft);
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    .danger-btn {
+      background: #fff1ef;
+      color: var(--danger);
+      border: 1px solid #f3c4bd;
+    }
+
+    .icon {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex: 0 0 18px;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line);
+      background: #f8fafb;
+      padding: 18px;
+      overflow: auto;
+    }
+
+    .sidebar-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .sidebar-head h2, .panel h2, .section-title h2 {
+      font-size: 15px;
+      margin: 0;
+    }
+
+    .title-with-icon {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .title-icon {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 22px;
+      color: var(--brand-dark);
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .count {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .kitten-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .kitten-tab {
+      width: 100%;
+      min-height: 76px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--ink);
+      padding: 10px;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+    }
+
+    .kitten-tab.active {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 2px rgba(38, 115, 109, .12);
+    }
+
+    .avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #263238;
+      font-weight: 700;
+      border: 1px solid rgba(0, 0, 0, .08);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .avatar svg {
+      width: 42px;
+      height: 42px;
+    }
+
+    .avatar img {
+      width: 42px;
+      height: 42px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .avatar span {
+      position: absolute;
+      inset: auto 0 3px;
+      text-align: center;
+      font-size: 11px;
+      line-height: 1;
+      color: rgba(20, 35, 44, .72);
+      font-weight: 800;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, .65);
+    }
+
+    .avatar.sky { background: var(--sky); }
+    .avatar.pink { background: var(--pink); }
+    .avatar.yellow { background: var(--yellow); }
+    .avatar.mint { background: var(--mint); }
+    .avatar.gray { background: #e7e9ed; }
+    .avatar.peach { background: #f8dfcc; }
+
+    .tab-name {
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tab-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .due {
+      color: var(--warn);
+      font-weight: 700;
+    }
+
+    .main {
+      padding: 22px;
+      overflow: auto;
+    }
+
+    .workspace {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 260px;
+      min-height: 160px;
+      overflow: hidden;
+    }
+
+    .hero-copy {
+      padding: 20px;
+      display: grid;
+      align-content: center;
+      gap: 10px;
+    }
+
+    .hero-copy h2 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.18;
+    }
+
+    .hero-copy p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 700px;
+    }
+
+    .hero-art {
+      background: linear-gradient(135deg, #dff1e7, #fff0c2);
+      display: grid;
+      place-items: center;
+      border-left: 1px solid var(--line);
+      padding: 16px;
+    }
+
+    .hero-art svg {
+      width: 210px;
+      max-width: 90%;
+      height: auto;
+    }
+
+    .photo-frame {
+      width: min(220px, 100%);
+      aspect-ratio: 1.35;
+      border: 8px solid rgba(255, 255, 255, .9);
+      border-radius: 8px;
+      box-shadow: 0 10px 24px rgba(21, 38, 54, .16);
+      background: white;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+    }
+
+    .photo-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .photo-frame.placeholder img {
+      width: 78%;
+      height: 78%;
+      object-fit: contain;
+    }
+
+    .photo-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .photo-preview {
+      width: 74px;
+      height: 74px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--soft);
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .photo-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      min-height: 86px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat::after {
+      content: "";
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--mint);
+      box-shadow: -10px 10px 0 var(--yellow), 8px 14px 0 var(--pink);
+      opacity: .65;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 22px;
+      line-height: 1.1;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .section-title .field {
+      min-width: 190px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      min-height: 40px;
+      padding: 8px 10px;
+      color: var(--ink);
+    }
+
+    textarea {
+      min-height: 76px;
+      resize: vertical;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .segment {
+      border: 1px solid var(--line);
+      background: var(--soft);
+      min-height: 38px;
+      border-radius: 8px;
+      color: var(--ink);
+    }
+
+    .segment.active {
+      background: var(--brand);
+      color: white;
+      border-color: var(--brand);
+    }
+
+    .check-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      min-height: 40px;
+    }
+
+    .check {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 36px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--soft);
+      color: var(--ink);
+    }
+
+    .check input {
+      width: 16px;
+      height: 16px;
+      min-height: 0;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+      max-height: 460px;
+      overflow: auto;
+      padding-right: 3px;
+    }
+
+    .event {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+      background: #fbfcfd;
+    }
+
+    .event-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .event-title {
+      font-weight: 700;
+    }
+
+    .event-time {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: var(--soft);
+      color: var(--ink);
+      font-size: 12px;
+      border: 1px solid var(--line);
+    }
+
+    .chip.ok {
+      color: var(--ok);
+      background: #edf8f1;
+      border-color: #c8ead4;
+    }
+
+    .chip.warn {
+      color: var(--warn);
+      background: #fff6e8;
+      border-color: #f4d8aa;
+    }
+
+    .note {
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .weight-strip {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(36px, 1fr));
+      gap: 8px;
+      align-items: end;
+      min-height: 150px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfd;
+    }
+
+    .weight-strip .empty {
+      grid-column: 1 / -1;
+    }
+
+    .weight-day {
+      display: grid;
+      grid-template-rows: 1fr auto auto;
+      gap: 6px;
+      min-width: 0;
+      height: 126px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .weight-bar-wrap {
+      display: flex;
+      align-items: end;
+      justify-content: center;
+      min-height: 72px;
+    }
+
+    .weight-bar {
+      width: 18px;
+      min-height: 8px;
+      border-radius: 8px 8px 3px 3px;
+      background: var(--brand);
+    }
+
+    .weight-value {
+      color: var(--ink);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .medical-list {
+      display: grid;
+      gap: 10px;
+      max-height: 360px;
+      overflow: auto;
+    }
+
+    .info-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .info-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfd;
+      padding: 12px;
+      line-height: 1.55;
+    }
+
+    .info-item strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .icon-picker {
+      display: grid;
+      grid-template-columns: repeat(6, 44px);
+      gap: 8px;
+      align-items: center;
+    }
+
+    .icon-choice {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid var(--line);
+      background: white;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .icon-choice.active {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(38, 115, 109, .14);
+    }
+
+    .icon-choice img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .album-link {
+      color: var(--brand-dark);
+      font-weight: 700;
+      word-break: break-word;
+    }
+
+    .handoff {
+      white-space: pre-wrap;
+      background: #f7faf9;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      min-height: 220px;
+      padding: 12px;
+      line-height: 1.6;
+      color: var(--ink);
+    }
+
+    .empty {
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      text-align: center;
+      background: #fbfcfd;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(23, 32, 42, .34);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 20;
+    }
+
+    .modal-backdrop.show {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--surface);
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      width: min(560px, 100%);
+      padding: 18px;
+    }
+
+    .modal h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%) translateY(20px);
+      opacity: 0;
+      pointer-events: none;
+      background: #17202a;
+      color: white;
+      padding: 10px 14px;
+      border-radius: 8px;
+      transition: .2s ease;
+      z-index: 30;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .kitten-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-art {
+        min-height: 120px;
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .status-grid, .content-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .content-grid {
+        align-items: stretch;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 12px 14px;
+      }
+
+      .top-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .main, .sidebar {
+        padding: 14px;
+      }
+
+      .kitten-list, .status-grid, .content-grid, .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-copy h2 {
+        font-size: 22px;
+      }
+
+      .segmented {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <img class="mark" src="assets/cat-icon-01.png" alt="" aria-hidden="true">
+        <div>
+          <h1>奶貓日記</h1>
+          <p>餵奶、體重、奶粉、醫療與相簿連結</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="ghost-btn" id="loginBtn" type="button" title="登入共用照護空間">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg>
+          <span id="loginLabel">共用登入</span>
+        </button>
+        <button class="primary-btn" id="openAddBtn" type="button">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          新增奶貓
+        </button>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <h2 class="title-with-icon"><svg class="title-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10c-1.2 0-2-1-2-2.4S5.8 5 7 5s2 1.1 2 2.6S8.2 10 7 10Z"/><path d="M17 10c-1.2 0-2-1-2-2.4S15.8 5 17 5s2 1.1 2 2.6S18.2 10 17 10Z"/><path d="M10 8c-1.1 0-1.8-1-1.8-2.2S8.9 3.5 10 3.5s1.8 1 1.8 2.3S11.1 8 10 8Z"/><path d="M14 8c-1.1 0-1.8-1-1.8-2.2s.7-2.3 1.8-2.3 1.8 1 1.8 2.3S15.1 8 14 8Z"/><path d="M12 11c3.8 0 6 2.6 6 5.3 0 1.8-1.3 3.2-3.1 3.2-1.1 0-1.8-.5-2.9-.5s-1.8.5-2.9.5C7.3 19.5 6 18.1 6 16.3 6 13.6 8.2 11 12 11Z"/></svg>奶貓列表</h2>
+        <span class="count" id="kittenCount">0 / 6</span>
+      </div>
+      <div class="kitten-list" id="kittenList"></div>
+    </aside>
+
+    <main class="main">
+      <div class="workspace">
+        <section class="hero" aria-label="今日照護重點">
+          <div class="hero-copy">
+            <h2 id="heroTitle">今天先把每一餐穩穩記好</h2>
+            <p id="heroText">登入同一個照護空間後，兩位照顧者可以共用奶貓資料、照護紀錄、醫療紀錄與交班摘要。</p>
+          </div>
+          <div class="hero-art" id="heroArt" aria-label="奶貓相框照">
+            <div class="photo-frame placeholder" id="heroPhotoFrame">
+              <img id="heroPhoto" src="assets/cat-icon-01.png" alt="">
+            </div>
+          </div>
+        </section>
+
+        <section class="content-grid">
+          <div class="panel">
+            <div class="section-title">
+              <h2 class="title-with-icon"><svg class="title-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4z"/><path d="M8 7V4h8v3"/><path d="M8 12h8M8 16h5"/></svg>梯次資料</h2>
+              <span class="count" id="batchSummary">尚未儲存</span>
+            </div>
+            <form id="batchForm" class="form-grid">
+              <div class="field">
+                <label for="batchName">梯次名稱</label>
+                <input id="batchName" placeholder="例如：花蓮港 0621 梯">
+              </div>
+              <div class="field">
+                <label for="foundDate">拾獲日期</label>
+                <input id="foundDate" type="date">
+              </div>
+              <div class="field">
+                <label for="foundLocation">拾獲地點</label>
+                <input id="foundLocation" placeholder="例如：校門口、花圃旁">
+              </div>
+              <div class="field">
+                <label for="batchStatus">整體狀態</label>
+                <select id="batchStatus">
+                  <option>觀察中</option>
+                  <option>穩定</option>
+                  <option>需保溫</option>
+                  <option>需就醫</option>
+                  <option>準備送養</option>
+                </select>
+              </div>
+              <div class="field full">
+                <label for="batchMedicalCheck">初步醫療檢查</label>
+                <textarea id="batchMedicalCheck" placeholder="例如：眼鼻分泌物、脫水、跳蚤、外傷、臍帶狀況、是否已看診"></textarea>
+              </div>
+              <div class="field full">
+                <button class="primary-btn" type="submit">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                  儲存梯次資料
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div class="panel">
+            <div class="section-title">
+              <h2 class="title-with-icon"><svg class="title-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10c-1.2 0-2-1-2-2.4S5.8 5 7 5s2 1.1 2 2.6S8.2 10 7 10Z"/><path d="M17 10c-1.2 0-2-1-2-2.4S15.8 5 17 5s2 1.1 2 2.6S18.2 10 17 10Z"/><path d="M12 11c3.8 0 6 2.6 6 5.3 0 1.8-1.3 3.2-3.1 3.2-1.1 0-1.8-.5-2.9-.5s-1.8.5-2.9.5C7.3 19.5 6 18.1 6 16.3 6 13.6 8.2 11 12 11Z"/></svg>快速選擇</h2>
+            </div>
+            <div class="form-grid">
+              <div class="field full">
+                <label for="quickKittenSelect">目前紀錄對象</label>
+                <select id="quickKittenSelect"></select>
+              </div>
+              <div class="info-grid field full">
+                <div class="info-item">
+                  <strong>多隻一起照顧時</strong>
+                  先用這裡切換奶貓，再往下填餵奶、體重、奶粉或醫療紀錄；左側列表也會同步選取。
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="status-grid" aria-label="狀態摘要">
+          <div class="stat"><span>下一次餵奶</span><strong id="nextFeedStat">--</strong></div>
+          <div class="stat"><span>最近奶量</span><strong id="milkStat">--</strong></div>
+          <div class="stat"><span>最近體重</span><strong id="weightStat">--</strong></div>
+          <div class="stat"><span>體重變化</span><strong id="weightDeltaStat">--</strong></div>
+          <div class="stat"><span>排泄狀況</span><strong id="pottyStat">--</strong></div>
+          <div class="stat"><span>相簿</span><strong id="albumStat">--</strong></div>
+        </section>
+
+        <section class="content-grid">
+          <div class="panel">
+            <div class="section-title">
+              <h2 class="title-with-icon"><svg class="title-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2h4v5l4 5v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-8l4-5V2Z"/><path d="M10 7h4"/><path d="M8 14h8"/></svg>記錄照護</h2>
+              <button class="ghost-btn" id="editKittenBtn" type="button">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                編輯資料
+              </button>
+            </div>
+            <form id="careForm" class="form-grid">
+              <div class="field">
+                <label for="careTime">時間</label>
+                <input id="careTime" name="careTime" type="datetime-local" required>
+              </div>
+              <div class="field">
+                <label for="caretaker">照顧者</label>
+                <input id="caretaker" name="caretaker" type="text" placeholder="例如：A 班、B 班">
+              </div>
+              <div class="field">
+                <label for="milkAmount">奶量 ml</label>
+                <input id="milkAmount" name="milkAmount" type="number" min="0" max="120" step="1" placeholder="例如：18">
+              </div>
+              <div class="field">
+                <label for="weight">體重 g</label>
+                <input id="weight" name="weight" type="number" min="20" max="2000" step="1" placeholder="可選填">
+              </div>
+              <div class="field full">
+                <label>排泄</label>
+                <div class="check-row">
+                  <label class="check"><input id="pee" type="checkbox"> 有尿尿</label>
+                  <label class="check"><input id="poop" type="checkbox"> 有便便</label>
+                </div>
+              </div>
+              <div class="field full">
+                <label>便便型態</label>
+                <div class="segmented" id="stoolGroup" role="group" aria-label="便便型態">
+                  <button class="segment active" type="button" data-stool="無">無</button>
+                  <button class="segment" type="button" data-stool="成形">成形</button>
+                  <button class="segment" type="button" data-stool="軟便">軟便</button>
+                  <button class="segment" type="button" data-stool="水便">水便</button>
+                </div>
+              </div>
+              <div class="field full">
+                <label for="note">備註</label>
+                <textarea id="note" name="note" placeholder="例如：吸吮力、精神、保溫、吐奶、便色"></textarea>
+              </div>
+              <div class="field full">
+                <button class="primary-btn" type="submit">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                  儲存本次紀錄
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div class="panel">
+            <div class="section-title">
+              <h2 class="title-with-icon"><svg class="title-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l2 4v13H6V7l2-4Z"/><path d="M8 7h8"/><path d="M9 12h6M9 16h6"/></svg>近期紀錄</h2>
+              <button class="danger-btn" id="deleteRecordBtn" type="button">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/></svg>
+                刪最近一筆
+              </button>
+            </div>
+            <div class="timeline" id="timeline"></div>
+          </div>
+        </section>
+
+        <section class="content-grid">
+          <div class="panel">
+            <div class="section-title">
+              <h2 class="title-with-icon"><svg class="title-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2h6v4l3 4v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V10l3-4V2Z"/><path d="M9 6h6"/><path d="M8 13h8"/><path d="M10 17h4"/></svg>奶粉品牌</h2>
+              <button class="danger-btn" id="deleteFormulaBtn" type="button">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/></svg>
+                刪最近一筆
+              </button>
+            </div>
+            <form id="formulaForm" class="form-grid">
+              <div class="field">
+                <label for="formulaBrand">品牌</label>
+                <input id="formulaBrand" list="formulaBrandOptions" placeholder="選皇家、貝克、森乳、信元，或自行輸入">
+                <datalist id="formulaBrandOptions">
+                  <option value="皇家">
+                  <option value="貝克">
+                  <option value="森乳">
+                  <option value="信元">
+                  <option value="KMR">
+                  <option value="倍力">
+                  <option value="PetAg">
+                  <option value="貝比">
+                </datalist>
+              </div>
+              <div class="field">
+                <label for="formulaSeries">系列 / 品名</label>
+                <input id="formulaSeries" placeholder="例如：奶貓代乳粉">
+              </div>
+              <div class="field">
+                <label for="formulaOpened">開封日期</label>
+                <input id="formulaOpened" type="date">
+              </div>
+              <div class="field">
+                <label for="formulaRatio">沖泡比例</label>
+                <input id="formulaRatio" placeholder="例如：1 匙粉 : 2 匙水">
+              </div>
+              <div class="field full">
+                <label class="check"><input id="formulaActive" type="checkbox" checked> 目前正在使用</label>
+              </div>
+              <div class="field full">
+                <label for="formulaNote">備註</label>
+                <textarea id="formulaNote" placeholder="例如：接受度、便便變化、保存位置"></textarea>
+              </div>
+              <div class="field full">
+                <button class="primary-btn" type="submit">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                  儲存奶粉資料
+                </button>
+              </div>
+            </form>
+            <div class="medical-list" id="formulaList"></div>
+          </div>
+
+          <div class="panel">
+            <div class="section-title">
+              <h2 class="title-with-icon"><svg class="title-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 7v6c0 5 3.5 7.5 8 9 4.5-1.5 8-4 8-9V7l-8-4Z"/><path d="M9 12l2 2 4-5"/></svg>資料與帳號</h2>
+            </div>
+            <div class="info-grid">
+              <div class="info-item">
+                <strong>目前資料位置</strong>
+                這個原型會存到目前裝置的瀏覽器本機資料。換手機、換瀏覽器或清除網站資料後，就不會自動帶過去。
+              </div>
+              <div class="info-item">
+                <strong>手機能不能直接用</strong>
+                可以用手機瀏覽器打開這個 HTML 原型填資料；但若要兩個人不同手機同步，需要正式接雲端資料庫。
+              </div>
+              <div class="info-item">
+                <strong>帳號與註冊</strong>
+                目前已加入「共用登入」與「建立新照護空間」入口。正式版會把這裡接成註冊帳號、邀請共同照顧者與權限管理。
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="content-grid">
+          <div class="panel">
+            <div class="section-title">
+              <h2 class="title-with-icon"><svg class="title-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="m7 15 4-5 3 3 5-7"/></svg>體重變化</h2>
+              <span class="count" id="weightSummary">最近 7 筆</span>
+            </div>
+            <div class="weight-strip" id="weightChart"></div>
+          </div>
+
+          <div class="panel">
+            <div class="section-title">
+              <h2 class="title-with-icon"><svg class="title-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 3h4v7h7v4h-7v7h-4v-7H3v-4h7V3Z"/></svg>醫療紀錄</h2>
+              <button class="danger-btn" id="deleteMedicalBtn" type="button">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/></svg>
+                刪最近一筆
+              </button>
+            </div>
+            <form id="medicalForm" class="form-grid">
+              <div class="field">
+                <label for="medicalDate">日期</label>
+                <input id="medicalDate" type="date" required>
+              </div>
+              <div class="field">
+                <label for="medicalType">類型</label>
+                <select id="medicalType">
+                  <option>就醫</option>
+                  <option>預防針</option>
+                  <option>驅蟲</option>
+                  <option>用藥</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="medicalItem">項目</label>
+                <input id="medicalItem" placeholder="例如：第一劑、體內驅蟲">
+              </div>
+              <div class="field">
+                <label for="nextDue">下次提醒</label>
+                <input id="nextDue" type="date">
+              </div>
+              <div class="field full">
+                <label for="medicalNote">紀錄</label>
+                <textarea id="medicalNote" placeholder="例如：診斷、藥名、劑量、醫師提醒"></textarea>
+              </div>
+              <div class="field full">
+                <button class="primary-btn" type="submit">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                  儲存醫療紀錄
+                </button>
+              </div>
+            </form>
+            <div class="medical-list" id="medicalList"></div>
+          </div>
+        </section>
+
+        <section class="content-grid">
+          <div class="panel">
+            <div class="section-title">
+              <h2 class="title-with-icon"><svg class="title-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 5l2-2h4l2 2"/><circle cx="12" cy="13" r="4"/></svg>每日相簿</h2>
+              <a class="ghost-btn" id="albumOpen" href="#" target="_blank" rel="noreferrer">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="m10 14 11-11"/></svg>
+                開啟相簿
+              </a>
+            </div>
+            <p class="note" id="albumText">把 Google 相簿分享連結貼在奶貓資料裡，未來送養時就能直接傳給新家庭。</p>
+          </div>
+
+          <div class="panel">
+            <div class="section-title">
+              <h2 class="title-with-icon"><svg class="title-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v4H7z"/><path d="M5 7h14v14H5z"/><path d="M8 12h8M8 16h5"/></svg>共用交班摘要</h2>
+              <button class="ghost-btn" id="refreshHandoffBtn" type="button">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/><path d="M3 12A9 9 0 0 1 18 5.3L21 8"/><path d="M21 3v5h-5"/></svg>
+                更新
+              </button>
+            </div>
+            <div class="handoff" id="handoffBox"></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="kittenModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h2 id="modalTitle">新增奶貓</h2>
+      <form id="kittenForm" class="form-grid">
+        <input type="hidden" id="kittenId">
+        <input type="hidden" id="kittenIconIndex">
+        <input type="hidden" id="kittenPhotoData">
+        <div class="field">
+          <label for="kittenName">名字</label>
+          <input id="kittenName" required maxlength="18" placeholder="例如：小橘">
+        </div>
+        <div class="field">
+          <label for="kittenDays">天數</label>
+          <input id="kittenDays" type="number" min="0" max="90" required>
+        </div>
+        <div class="field">
+          <label for="kittenSize">體型大小</label>
+          <select id="kittenSize">
+            <option>偏小</option>
+            <option selected>正常</option>
+            <option>偏大</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="kittenColor">標籤色</label>
+          <select id="kittenColor">
+            <option value="sky">藍</option>
+            <option value="pink">粉</option>
+            <option value="yellow">黃</option>
+            <option value="mint">綠</option>
+            <option value="gray">灰</option>
+            <option value="peach">橘</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label>貓咪 icon</label>
+          <div class="icon-picker" id="kittenIconPicker"></div>
+        </div>
+        <div class="field full">
+          <label for="kittenPhotoFile">小奶貓相框照</label>
+          <div class="photo-actions">
+            <div class="photo-preview" id="kittenPhotoPreview">尚未上傳</div>
+            <input id="kittenPhotoFile" type="file" accept="image/*">
+            <button class="ghost-btn" id="removePhotoBtn" type="button">移除照片</button>
+          </div>
+        </div>
+        <div class="field full">
+          <label for="albumUrl">Google 相簿分享連結</label>
+          <input id="albumUrl" type="url" placeholder="https://photos.app.goo.gl/...">
+        </div>
+        <div class="field full">
+          <label for="kittenMemo">固定注意事項</label>
+          <textarea id="kittenMemo" placeholder="例如：右眼清潔、喝奶較慢、保溫要注意"></textarea>
+        </div>
+        <div class="modal-actions field full">
+          <button class="ghost-btn" id="closeModalBtn" type="button">取消</button>
+          <button class="danger-btn" id="removeKittenBtn" type="button">刪除奶貓</button>
+          <button class="primary-btn" type="submit">儲存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="loginModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+      <h2 id="loginTitle">共用登入</h2>
+      <form id="loginForm" class="form-grid">
+        <div class="field full">
+          <label for="supabaseUrl">Supabase URL</label>
+          <input id="supabaseUrl" type="url" placeholder="https://xxxx.supabase.co" required>
+        </div>
+        <div class="field full">
+          <label for="supabaseAnonKey">Supabase anon key</label>
+          <input id="supabaseAnonKey" placeholder="貼上 anon public key" required>
+        </div>
+        <div class="field">
+          <label for="authEmail">Email</label>
+          <input id="authEmail" type="email" placeholder="you@example.com" required>
+        </div>
+        <div class="field">
+          <label for="authPassword">密碼</label>
+          <input id="authPassword" type="password" minlength="6" placeholder="至少 6 個字" required>
+        </div>
+        <div class="field">
+          <label for="spaceCode">照護空間代碼</label>
+          <input id="spaceCode" maxlength="24" placeholder="例如：KITTEN-0621" required>
+        </div>
+        <div class="field">
+          <label for="caregiverName">照顧者名稱</label>
+          <input id="caregiverName" maxlength="18" placeholder="例如：早班、阿雷" required>
+        </div>
+        <div class="field full">
+          <label for="loginNote">共用說明</label>
+          <textarea id="loginNote" readonly>填入 Supabase URL 與 anon key 後，可用 Email 註冊/登入。照護空間代碼可用來加入同一個共用空間；建立新空間會產生新的邀請碼。</textarea>
+        </div>
+        <div class="modal-actions field full">
+          <button class="ghost-btn" id="closeLoginBtn" type="button">取消</button>
+          <button class="ghost-btn" id="createSpaceBtn" type="button">建立新空間</button>
+          <button class="danger-btn" id="logoutBtn" type="button">登出</button>
+          <button class="primary-btn" type="submit">進入共用空間</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">已儲存</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const STORAGE_KEY = "kitten-diary-v1";
+    const CLOUD_CONFIG_KEY = "kitten-diary-supabase-config-v1";
+    const CAT_ICON_PATHS = Array.from({ length: 12 }, (_, index) => `assets/cat-icon-${String(index + 1).padStart(2, "0")}.png`);
+    const colors = ["sky", "pink", "yellow", "mint", "gray", "peach"];
+    let selectedStool = "無";
+    let selectedId = "";
+    let state = loadState();
+    let supabaseClient = null;
+    let cloud = {
+      user: null,
+      careSpaceId: "",
+      batchId: ""
+    };
+
+    const els = {
+      kittenList: document.getElementById("kittenList"),
+      kittenCount: document.getElementById("kittenCount"),
+      batchSummary: document.getElementById("batchSummary"),
+      quickKittenSelect: document.getElementById("quickKittenSelect"),
+      heroTitle: document.getElementById("heroTitle"),
+      heroText: document.getElementById("heroText"),
+      heroPhoto: document.getElementById("heroPhoto"),
+      heroPhotoFrame: document.getElementById("heroPhotoFrame"),
+      nextFeedStat: document.getElementById("nextFeedStat"),
+      milkStat: document.getElementById("milkStat"),
+      weightStat: document.getElementById("weightStat"),
+      weightDeltaStat: document.getElementById("weightDeltaStat"),
+      pottyStat: document.getElementById("pottyStat"),
+      albumStat: document.getElementById("albumStat"),
+      timeline: document.getElementById("timeline"),
+      weightChart: document.getElementById("weightChart"),
+      weightSummary: document.getElementById("weightSummary"),
+      medicalList: document.getElementById("medicalList"),
+      formulaList: document.getElementById("formulaList"),
+      handoffBox: document.getElementById("handoffBox"),
+      loginLabel: document.getElementById("loginLabel"),
+      albumOpen: document.getElementById("albumOpen"),
+      albumText: document.getElementById("albumText"),
+      modal: document.getElementById("kittenModal"),
+      loginModal: document.getElementById("loginModal"),
+      modalTitle: document.getElementById("modalTitle"),
+      toast: document.getElementById("toast")
+    };
+
+    function loadState() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return normalizeState(JSON.parse(saved));
+      const now = new Date();
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+      return {
+        session: {
+          spaceCode: "KITTEN-0621",
+          caregiverName: "早班"
+        },
+        batch: {
+          name: "花蓮 0621 梯",
+          foundDate: new Date().toISOString().slice(0, 10),
+          foundLocation: "校園周邊",
+          status: "觀察中",
+          medicalCheck: "初步檢查：保溫、脫水、跳蚤與眼鼻分泌物需持續觀察。"
+        },
+        kittens: [
+          {
+            id: crypto.randomUUID(),
+            name: "小橘",
+            days: 10,
+            size: "正常",
+            color: "peach",
+            iconIndex: 4,
+            albumUrl: "",
+            memo: "保溫穩定，喝奶速度中等。",
+            formulaRecords: [
+              { id: crypto.randomUUID(), brand: "KMR", series: "奶貓代乳粉", opened: new Date().toISOString().slice(0, 10), ratio: "1 匙粉 : 2 匙水", active: true, note: "接受度穩定，沖泡後溫度要再確認。" }
+            ],
+            medicalRecords: [
+              { id: crypto.randomUUID(), date: new Date().toISOString().slice(0, 10), type: "驅蟲", item: "體外檢查", nextDue: "", note: "目前未見跳蚤，持續觀察。" }
+            ],
+            records: [
+              { id: crypto.randomUUID(), time: oneHourAgo, caretaker: "早班", milk: 18, weight: 165, pee: true, poop: true, stool: "成形", note: "精神好，肚子柔軟。" }
+            ]
+          },
+          {
+            id: crypto.randomUUID(),
+            name: "豆花",
+            days: 8,
+            size: "偏小",
+            color: "mint",
+            iconIndex: 7,
+            albumUrl: "",
+            memo: "每餐先少量慢餵，注意吸吮力。",
+            formulaRecords: [],
+            medicalRecords: [],
+            records: []
+          }
+        ]
+      };
+    }
+
+    function normalizeState(nextState) {
+      nextState.session = nextState.session || { spaceCode: "", caregiverName: "" };
+      nextState.batch = nextState.batch || { name: "", foundDate: "", foundLocation: "", status: "觀察中", medicalCheck: "" };
+      nextState.batch.remoteId = nextState.batch.remoteId || "";
+      nextState.kittens = (nextState.kittens || []).map((kitten, index) => ({
+        ...kitten,
+        remoteId: kitten.remoteId || "",
+        iconIndex: Number.isInteger(kitten.iconIndex) ? kitten.iconIndex : index % CAT_ICON_PATHS.length,
+        photoData: kitten.photoData || "",
+        records: kitten.records || [],
+        formulaRecords: kitten.formulaRecords || [],
+        medicalRecords: kitten.medicalRecords || []
+      }));
+      return nextState;
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function loadCloudConfig() {
+      try {
+        return JSON.parse(localStorage.getItem(CLOUD_CONFIG_KEY) || "{}");
+      } catch {
+        return {};
+      }
+    }
+
+    function saveCloudConfig(config) {
+      localStorage.setItem(CLOUD_CONFIG_KEY, JSON.stringify(config));
+    }
+
+    function initSupabaseClient(config = loadCloudConfig()) {
+      if (!config.url || !config.anonKey || !window.supabase) return null;
+      supabaseClient = window.supabase.createClient(config.url, config.anonKey);
+      return supabaseClient;
+    }
+
+    function cloudReady() {
+      return Boolean(supabaseClient && cloud.user && cloud.careSpaceId);
+    }
+
+    function sizeToEnum(size) {
+      return { "偏小": "small", "正常": "normal", "偏大": "large" }[size] || "normal";
+    }
+
+    function stoolToEnum(stool) {
+      return { "無": "none", "成形": "formed", "軟便": "soft", "水便": "watery" }[stool] || "other";
+    }
+
+    function batchStatusToEnum(status) {
+      return {
+        "觀察中": "observing",
+        "穩定": "stable",
+        "需保溫": "needs_warmth",
+        "需就醫": "needs_vet",
+        "準備送養": "ready_for_adoption"
+      }[status] || "observing";
+    }
+
+    async function ensureCloudBatch() {
+      if (!cloudReady()) return null;
+      const payload = {
+        care_space_id: cloud.careSpaceId,
+        name: state.batch.name || "未命名梯次",
+        found_date: state.batch.foundDate || null,
+        found_location: state.batch.foundLocation || null,
+        status: batchStatusToEnum(state.batch.status),
+        initial_medical_check: state.batch.medicalCheck || null
+      };
+      if (state.batch.remoteId) {
+        const { error } = await supabaseClient.from("care_batches").update(payload).eq("id", state.batch.remoteId);
+        if (error) throw error;
+        cloud.batchId = state.batch.remoteId;
+        return state.batch.remoteId;
+      }
+      const { data, error } = await supabaseClient.from("care_batches").insert(payload).select("id").single();
+      if (error) throw error;
+      state.batch.remoteId = data.id;
+      cloud.batchId = data.id;
+      saveState();
+      return data.id;
+    }
+
+    async function syncKittenToCloud(kitten) {
+      if (!cloudReady()) return null;
+      const batchId = await ensureCloudBatch();
+      const payload = {
+        care_space_id: cloud.careSpaceId,
+        batch_id: batchId,
+        name: kitten.name,
+        days_old: kitten.days || null,
+        size: sizeToEnum(kitten.size),
+        icon_index: kitten.iconIndex || 0,
+        google_album_url: kitten.albumUrl || null,
+        fixed_notes: kitten.memo || null
+      };
+      if (kitten.remoteId) {
+        const { error } = await supabaseClient.from("kittens").update(payload).eq("id", kitten.remoteId);
+        if (error) throw error;
+        return kitten.remoteId;
+      }
+      const { data, error } = await supabaseClient.from("kittens").insert(payload).select("id").single();
+      if (error) throw error;
+      kitten.remoteId = data.id;
+      saveState();
+      return data.id;
+    }
+
+    async function syncCareRecordToCloud(kitten, record) {
+      if (!cloudReady()) return;
+      const kittenId = await syncKittenToCloud(kitten);
+      const batchId = await ensureCloudBatch();
+      const { error } = await supabaseClient.from("care_logs").insert({
+        care_space_id: cloud.careSpaceId,
+        kitten_id: kittenId,
+        batch_id: batchId,
+        recorded_at: record.time,
+        caregiver_name: record.caretaker || state.session?.caregiverName || null,
+        milk_amount_ml: record.milk || null,
+        weight_g: record.weight || null,
+        peed: record.pee,
+        pooped: record.poop,
+        stool: stoolToEnum(record.stool),
+        notes: record.note || null
+      });
+      if (error) throw error;
+      if (record.weight) {
+        await supabaseClient.from("weight_logs").insert({
+          care_space_id: cloud.careSpaceId,
+          kitten_id: kittenId,
+          measured_at: record.time,
+          weight_g: record.weight,
+          notes: record.note || null
+        });
+      }
+    }
+
+    function currentKitten() {
+      return state.kittens.find(k => k.id === selectedId) || state.kittens[0] || null;
+    }
+
+    function formatTime(value) {
+      if (!value) return "--";
+      return new Intl.DateTimeFormat("zh-TW", {
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      }).format(new Date(value));
+    }
+
+    function minutesUntilNext(kitten) {
+      const last = latestRecord(kitten);
+      if (!last) return null;
+      const next = new Date(last.time).getTime() + 3.5 * 60 * 60 * 1000;
+      return Math.round((next - Date.now()) / 60000);
+    }
+
+    function latestRecord(kitten) {
+      return [...kitten.records].sort((a, b) => new Date(b.time) - new Date(a.time))[0] || null;
+    }
+
+    function weightRecords(kitten) {
+      return [...kitten.records]
+        .filter(record => record.weight)
+        .sort((a, b) => new Date(a.time) - new Date(b.time));
+    }
+
+    function latestMedical(kitten) {
+      return [...kitten.medicalRecords].sort((a, b) => new Date(b.date) - new Date(a.date))[0] || null;
+    }
+
+    function latestFormula(kitten) {
+      const active = [...kitten.formulaRecords].reverse().find(record => record.active);
+      return active || kitten.formulaRecords[kitten.formulaRecords.length - 1] || null;
+    }
+
+    function kittenAvatarSrc(kitten) {
+      if (!kitten) return CAT_ICON_PATHS[0];
+      return kitten.photoData || CAT_ICON_PATHS[(kitten.iconIndex || 0) % CAT_ICON_PATHS.length];
+    }
+
+    function nextFeedText(kitten) {
+      const minutes = minutesUntilNext(kitten);
+      if (minutes === null) return "尚未記錄";
+      if (minutes <= 0) return `已到餵奶時間`;
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return hours ? `${hours}小時${mins}分後` : `${mins}分後`;
+    }
+
+    function setDateTimeNow() {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      document.getElementById("careTime").value = now.toISOString().slice(0, 16);
+      document.getElementById("medicalDate").value = now.toISOString().slice(0, 10);
+      if (!document.getElementById("formulaOpened").value) document.getElementById("formulaOpened").value = now.toISOString().slice(0, 10);
+    }
+
+    function render() {
+      if (!selectedId && state.kittens[0]) selectedId = state.kittens[0].id;
+      renderSession();
+      renderBatch();
+      renderList();
+      renderQuickSelect();
+      renderCurrent();
+      renderHandoff();
+      saveState();
+    }
+
+    function renderSession() {
+      const name = state.session?.caregiverName;
+      const code = state.session?.spaceCode;
+      const cloudMark = cloud.user ? "雲端" : "本機";
+      els.loginLabel.textContent = name ? `${cloudMark}｜${name}｜${code || "共用空間"}` : `${cloudMark}登入`;
+      const caretaker = document.getElementById("caretaker");
+      if (name && !caretaker.value) caretaker.value = name;
+    }
+
+    function renderBatch() {
+      const batch = state.batch || {};
+      document.getElementById("batchName").value = batch.name || "";
+      document.getElementById("foundDate").value = batch.foundDate || "";
+      document.getElementById("foundLocation").value = batch.foundLocation || "";
+      document.getElementById("batchStatus").value = batch.status || "觀察中";
+      document.getElementById("batchMedicalCheck").value = batch.medicalCheck || "";
+      els.batchSummary.textContent = batch.name ? `${batch.name}｜${batch.status || "觀察中"}` : "尚未儲存";
+    }
+
+    function renderQuickSelect() {
+      els.quickKittenSelect.innerHTML = state.kittens.length
+        ? state.kittens.map(kitten => `<option value="${kitten.id}">${escapeHtml(kitten.name)}｜${kitten.days}天｜${escapeHtml(kitten.size)}</option>`).join("")
+        : `<option value="">尚未新增奶貓</option>`;
+      els.quickKittenSelect.value = selectedId || "";
+      els.quickKittenSelect.disabled = !state.kittens.length;
+    }
+
+    function catFaceSvg(index) {
+      const styles = [
+        { face: "#60c5ce", ear: "#1f6fae", eye: "#14232c", stripe: "#14232c", blush: "#f08a8f", patch: "" },
+        { face: "#ee584d", ear: "#e33e42", eye: "#101820", stripe: "#ffd260", blush: "#1a1a1a", patch: "sunglasses" },
+        { face: "#ffffff", ear: "#f5f5f5", eye: "#1f1f1f", stripe: "#f06d63", blush: "#f6c1c8", patch: "heart" },
+        { face: "#111111", ear: "#111111", eye: "#70d0e6", stripe: "#d9eef4", blush: "#d9eef4", patch: "bib" },
+        { face: "#f6c15a", ear: "#f6a83a", eye: "#48b8d5", stripe: "#8b5a24", blush: "#f2a9a9", patch: "glasses" },
+        { face: "#f5f5f5", ear: "#ff6a5f", eye: "#58b8df", stripe: "#111111", blush: "#f06464", patch: "split" }
+      ][index % 6];
+      const ears = `<path d="M5 8 8 2l3 6M13 8l3-6 3 6" fill="${styles.ear}" stroke="#263238" stroke-width=".7"/>`;
+      const base = `<path d="M4 11c0-5 4-8 8-8s8 3 8 8c0 5.4-3.8 8.5-8 8.5S4 16.4 4 11Z" fill="${styles.face}" stroke="#263238" stroke-width=".8"/>`;
+      const stripes = `<path d="M10 5.2v3M12 4.8v3.2M14 5.2v3" stroke="${styles.stripe}" stroke-width=".8" stroke-linecap="round"/>`;
+      const whiskers = `<path d="M7.6 12.7 3 11.8M7.6 14 3.2 14.7M16.4 12.7l4.6-.9M16.4 14l4.4.7" stroke="#263238" stroke-width=".55" stroke-linecap="round"/>`;
+      const patch = styles.patch === "sunglasses"
+        ? `<ellipse cx="9" cy="10" rx="2.2" ry="1.8" fill="#101820"/><ellipse cx="15" cy="10" rx="2.2" ry="1.8" fill="#101820"/><path d="M11.2 10h1.6" stroke="#101820" stroke-width=".7"/>`
+        : styles.patch === "heart"
+          ? `<path d="M15.5 13.2c1.8-2 5 .2 2.3 3.1l-2.3 2.2-2.3-2.2c-2.7-2.9.5-5.1 2.3-3.1Z" fill="#ef5149"/>`
+          : styles.patch === "bib"
+            ? `<path d="M7 13c1 3.7 8.8 3.7 10 0 0 3.7-2.4 6.2-5 6.2S7 16.7 7 13Z" fill="#cfe9ef"/>`
+            : styles.patch === "glasses"
+              ? `<circle cx="9" cy="10.2" r="2.1" fill="none" stroke="#8b5a24" stroke-width=".7"/><circle cx="15" cy="10.2" r="2.1" fill="none" stroke="#8b5a24" stroke-width=".7"/><path d="M11.1 10.2h1.8" stroke="#8b5a24" stroke-width=".7"/>`
+              : styles.patch === "split"
+                ? `<path d="M12 3c4.5.2 8 3.5 8 8 0 4.2-2.3 7-5.3 8.1L12 3Z" fill="#111111" opacity=".96"/>`
+                : "";
+      return `<svg viewBox="0 0 24 24" aria-hidden="true">${ears}${base}${patch}${stripes}<circle cx="8.8" cy="10.5" r="1.1" fill="${styles.eye}"/><circle cx="15.2" cy="10.5" r="1.1" fill="${styles.eye}"/><path d="M12 12.2 10.8 11h2.4Z" fill="#e34b4b"/><path d="M12 12.3v1.7M10.2 15c1.1 1 2.5 1 3.6 0" stroke="#263238" stroke-width=".65" stroke-linecap="round" fill="none"/><circle cx="7.4" cy="13" r=".9" fill="${styles.blush}" opacity=".8"/><circle cx="16.6" cy="13" r=".9" fill="${styles.blush}" opacity=".8"/>${whiskers}</svg>`;
+    }
+
+    function renderList() {
+      els.kittenCount.textContent = `${state.kittens.length} / 6`;
+      els.kittenList.innerHTML = "";
+      if (!state.kittens.length) {
+        els.kittenList.innerHTML = `<div class="empty">先新增第一隻奶貓</div>`;
+        return;
+      }
+      state.kittens.forEach(kitten => {
+        const last = latestRecord(kitten);
+        const due = minutesUntilNext(kitten);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `kitten-tab ${kitten.id === selectedId ? "active" : ""}`;
+        button.innerHTML = `
+          <div class="avatar ${kitten.color}">
+            <img src="${kittenAvatarSrc(kitten)}" alt="">
+            <span>${kitten.name.slice(0, 1)}</span>
+          </div>
+          <div>
+            <div class="tab-name">${escapeHtml(kitten.name)}</div>
+            <div class="tab-meta">
+              <span>${kitten.days} 天</span>
+              <span>${escapeHtml(kitten.size)}</span>
+              <span class="${due !== null && due <= 0 ? "due" : ""}">${last ? nextFeedText(kitten) : "尚未餵奶"}</span>
+            </div>
+          </div>
+        `;
+        button.addEventListener("click", () => {
+          selectedId = kitten.id;
+          render();
+        });
+        els.kittenList.appendChild(button);
+      });
+    }
+
+    function renderCurrent() {
+      const kitten = currentKitten();
+      const formDisabled = !kitten;
+      document.getElementById("careForm").querySelectorAll("input, select, textarea, button").forEach(el => el.disabled = formDisabled);
+      document.getElementById("medicalForm").querySelectorAll("input, select, textarea, button").forEach(el => el.disabled = formDisabled);
+      document.getElementById("formulaForm").querySelectorAll("input, select, textarea, button").forEach(el => el.disabled = formDisabled);
+      document.getElementById("editKittenBtn").disabled = formDisabled;
+      document.getElementById("deleteRecordBtn").disabled = formDisabled;
+      document.getElementById("deleteMedicalBtn").disabled = formDisabled;
+      document.getElementById("deleteFormulaBtn").disabled = formDisabled;
+      if (!kitten) {
+        els.heroTitle.textContent = "新增奶貓後開始日記";
+        els.heroText.textContent = "每隻奶貓都能擁有自己的日齡、體型、照護紀錄與相簿連結。";
+        els.heroPhoto.src = CAT_ICON_PATHS[0];
+        els.heroPhotoFrame.classList.add("placeholder");
+        els.nextFeedStat.textContent = "--";
+        els.milkStat.textContent = "--";
+        els.weightStat.textContent = "--";
+        els.weightDeltaStat.textContent = "--";
+        els.pottyStat.textContent = "--";
+        els.albumStat.textContent = "--";
+        els.timeline.innerHTML = `<div class="empty">目前沒有奶貓資料</div>`;
+        els.weightChart.innerHTML = `<div class="empty">目前沒有體重資料</div>`;
+        els.medicalList.innerHTML = `<div class="empty">目前沒有醫療紀錄</div>`;
+        els.formulaList.innerHTML = `<div class="empty">目前沒有奶粉資料</div>`;
+        return;
+      }
+      const last = latestRecord(kitten);
+      const weights = weightRecords(kitten);
+      const lastWeight = weights[weights.length - 1] || null;
+      const previousWeight = weights[weights.length - 2] || null;
+      const delta = lastWeight && previousWeight ? lastWeight.weight - previousWeight.weight : null;
+      els.heroTitle.textContent = `${kitten.name}，${kitten.days} 天，體型${kitten.size}`;
+      els.heroText.textContent = `${state.batch?.name || "目前梯次"}｜${kitten.memo || "這裡會顯示固定注意事項，交班時也會帶入摘要。"}`;
+      els.heroPhoto.src = kittenAvatarSrc(kitten);
+      els.heroPhotoFrame.classList.toggle("placeholder", !kitten.photoData);
+      els.nextFeedStat.textContent = nextFeedText(kitten);
+      els.milkStat.textContent = last && last.milk ? `${last.milk} ml` : "--";
+      els.weightStat.textContent = lastWeight ? `${lastWeight.weight} g` : "--";
+      els.weightDeltaStat.textContent = delta === null ? "--" : `${delta > 0 ? "+" : ""}${delta} g`;
+      els.pottyStat.textContent = last ? `${last.pee ? "有尿" : "無尿"} / ${last.poop ? last.stool : "無便"}` : "--";
+      els.albumStat.textContent = kitten.albumUrl ? "已設定" : "未設定";
+      els.albumOpen.href = kitten.albumUrl || "#";
+      els.albumOpen.style.pointerEvents = kitten.albumUrl ? "auto" : "none";
+      els.albumOpen.style.opacity = kitten.albumUrl ? "1" : ".55";
+      els.albumText.innerHTML = kitten.albumUrl
+        ? `相簿連結：<a class="album-link" href="${escapeAttr(kitten.albumUrl)}" target="_blank" rel="noreferrer">${escapeHtml(kitten.albumUrl)}</a>`
+        : "把 Google 相簿分享連結貼在奶貓資料裡，未來送養時就能直接傳給新家庭。";
+      renderTimeline(kitten);
+      renderFormulaList(kitten);
+      renderWeightChart(kitten);
+      renderMedicalList(kitten);
+    }
+
+    function renderTimeline(kitten) {
+      const records = [...kitten.records].sort((a, b) => new Date(b.time) - new Date(a.time));
+      if (!records.length) {
+        els.timeline.innerHTML = `<div class="empty">還沒有照護紀錄</div>`;
+        return;
+      }
+      els.timeline.innerHTML = records.slice(0, 12).map(record => `
+        <article class="event">
+          <div class="event-head">
+            <div class="event-title">${record.milk ? `${record.milk} ml` : "未填奶量"}</div>
+            <div class="event-time">${formatTime(record.time)}</div>
+          </div>
+          <div class="chips">
+            <span class="chip">${escapeHtml(record.caretaker || "未填照顧者")}</span>
+            ${record.weight ? `<span class="chip">${record.weight} g</span>` : ""}
+            <span class="chip ${record.pee ? "ok" : "warn"}">${record.pee ? "有尿尿" : "無尿尿"}</span>
+            <span class="chip ${record.poop ? "ok" : "warn"}">${record.poop ? `便便：${escapeHtml(record.stool)}` : "無便便"}</span>
+          </div>
+          ${record.note ? `<div class="note">${escapeHtml(record.note)}</div>` : ""}
+        </article>
+      `).join("");
+    }
+
+    function renderFormulaList(kitten) {
+      const items = [...kitten.formulaRecords].reverse();
+      if (!items.length) {
+        els.formulaList.innerHTML = `<div class="empty">尚未登記奶粉品牌</div>`;
+        return;
+      }
+      els.formulaList.innerHTML = items.slice(0, 6).map(item => `
+        <article class="event">
+          <div class="event-head">
+            <div class="event-title">${escapeHtml(item.brand || "未填品牌")}${item.series ? `｜${escapeHtml(item.series)}` : ""}</div>
+            <div class="event-time">${item.active ? "使用中" : "備用"}</div>
+          </div>
+          <div class="chips">
+            ${item.opened ? `<span class="chip">開封：${escapeHtml(item.opened)}</span>` : ""}
+            ${item.ratio ? `<span class="chip ok">${escapeHtml(item.ratio)}</span>` : ""}
+          </div>
+          ${item.note ? `<div class="note">${escapeHtml(item.note)}</div>` : ""}
+        </article>
+      `).join("");
+    }
+
+    function renderWeightChart(kitten) {
+      const weights = weightRecords(kitten).slice(-7);
+      if (!weights.length) {
+        els.weightSummary.textContent = "尚未記錄";
+        els.weightChart.innerHTML = `<div class="empty">在照護紀錄填入體重後，這裡會顯示趨勢。</div>`;
+        return;
+      }
+      const values = weights.map(record => record.weight);
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const last = values[values.length - 1];
+      const first = values[0];
+      const totalDelta = last - first;
+      els.weightSummary.textContent = `${first} g → ${last} g（${totalDelta > 0 ? "+" : ""}${totalDelta} g）`;
+      els.weightChart.innerHTML = weights.map(record => {
+        const ratio = max === min ? 1 : (record.weight - min) / (max - min);
+        const height = 18 + Math.round(ratio * 58);
+        return `
+          <div class="weight-day">
+            <div class="weight-bar-wrap"><div class="weight-bar" style="height:${height}px"></div></div>
+            <div class="weight-value">${record.weight}g</div>
+            <div>${formatTime(record.time)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderMedicalList(kitten) {
+      const items = [...kitten.medicalRecords].sort((a, b) => new Date(b.date) - new Date(a.date));
+      if (!items.length) {
+        els.medicalList.innerHTML = `<div class="empty">尚未建立醫療、預防針或驅蟲紀錄</div>`;
+        return;
+      }
+      els.medicalList.innerHTML = items.slice(0, 8).map(item => `
+        <article class="event">
+          <div class="event-head">
+            <div class="event-title">${escapeHtml(item.type)}${item.item ? `｜${escapeHtml(item.item)}` : ""}</div>
+            <div class="event-time">${escapeHtml(item.date)}</div>
+          </div>
+          <div class="chips">
+            <span class="chip ok">${escapeHtml(item.type)}</span>
+            ${item.nextDue ? `<span class="chip warn">下次：${escapeHtml(item.nextDue)}</span>` : ""}
+          </div>
+          ${item.note ? `<div class="note">${escapeHtml(item.note)}</div>` : ""}
+        </article>
+      `).join("");
+    }
+
+    function renderHandoff() {
+      if (!state.kittens.length) {
+        els.handoffBox.textContent = "尚未建立奶貓資料。";
+        return;
+      }
+      const lines = [];
+      lines.push(`共用交班摘要｜${new Intl.DateTimeFormat("zh-TW", { dateStyle: "medium", timeStyle: "short" }).format(new Date())}`);
+      if (state.session?.spaceCode) lines.push(`照護空間：${state.session.spaceCode}`);
+      if (state.session?.caregiverName) lines.push(`目前登入：${state.session.caregiverName}`);
+      if (state.batch?.name) lines.push(`梯次：${state.batch.name}`);
+      if (state.batch?.foundDate) lines.push(`拾獲日期：${state.batch.foundDate}`);
+      if (state.batch?.foundLocation) lines.push(`拾獲地點：${state.batch.foundLocation}`);
+      if (state.batch?.status) lines.push(`整體狀態：${state.batch.status}`);
+      if (state.batch?.medicalCheck) lines.push(`初步醫療檢查：${state.batch.medicalCheck}`);
+      lines.push("");
+      state.kittens.forEach(kitten => {
+        const last = latestRecord(kitten);
+        const weights = weightRecords(kitten);
+        const lastWeight = weights[weights.length - 1] || null;
+        const previousWeight = weights[weights.length - 2] || null;
+        const formula = latestFormula(kitten);
+        const medical = latestMedical(kitten);
+        lines.push(`${kitten.name}｜${kitten.days}天｜體型${kitten.size}`);
+        lines.push(`下一餐：${nextFeedText(kitten)}`);
+        if (last) {
+          lines.push(`上次：${formatTime(last.time)}，${last.milk || "--"} ml，${last.pee ? "有尿" : "無尿"}，${last.poop ? `便便${last.stool}` : "無便"}`);
+          if (last.note) lines.push(`本次備註：${last.note}`);
+        } else {
+          lines.push("上次：尚未記錄");
+        }
+        if (lastWeight) {
+          const delta = previousWeight ? lastWeight.weight - previousWeight.weight : null;
+          lines.push(`體重：${lastWeight.weight} g${delta === null ? "" : `（${delta > 0 ? "+" : ""}${delta} g）`}`);
+        }
+        if (formula) {
+          lines.push(`奶粉：${formula.brand || "未填品牌"}${formula.series ? `｜${formula.series}` : ""}${formula.ratio ? `｜${formula.ratio}` : ""}`);
+        }
+        if (medical) {
+          lines.push(`最近醫療：${medical.date} ${medical.type}${medical.item ? `｜${medical.item}` : ""}`);
+          if (medical.nextDue) lines.push(`下次提醒：${medical.nextDue}`);
+        }
+        if (kitten.memo) lines.push(`固定注意：${kitten.memo}`);
+        if (kitten.albumUrl) lines.push(`相簿：${kitten.albumUrl}`);
+        lines.push("");
+      });
+      els.handoffBox.textContent = lines.join("\n").trim();
+    }
+
+    function renderIconPicker(selectedIndex) {
+      const picker = document.getElementById("kittenIconPicker");
+      document.getElementById("kittenIconIndex").value = selectedIndex;
+      picker.innerHTML = CAT_ICON_PATHS.map((src, index) => `
+        <button class="icon-choice ${index === selectedIndex ? "active" : ""}" type="button" data-icon-index="${index}" title="貓咪 icon ${index + 1}">
+          <img src="${src}" alt="">
+        </button>
+      `).join("");
+    }
+
+    function renderPhotoPreview(photoData) {
+      const preview = document.getElementById("kittenPhotoPreview");
+      document.getElementById("kittenPhotoData").value = photoData || "";
+      preview.innerHTML = photoData ? `<img src="${photoData}" alt="">` : "尚未上傳";
+    }
+
+    function resizeImageFile(file, maxSize = 720) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const image = new Image();
+          image.onload = () => {
+            const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.round(image.width * scale);
+            canvas.height = Math.round(image.height * scale);
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL("image/jpeg", .82));
+          };
+          image.onerror = reject;
+          image.src = reader.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function openKittenModal(mode) {
+      const kitten = mode === "edit" ? currentKitten() : null;
+      const fallbackIcon = state.kittens.length % CAT_ICON_PATHS.length;
+      els.modalTitle.textContent = kitten ? "編輯奶貓資料" : "新增奶貓";
+      document.getElementById("removeKittenBtn").style.display = kitten ? "inline-flex" : "none";
+      document.getElementById("kittenId").value = kitten?.id || "";
+      renderIconPicker(kitten?.iconIndex ?? fallbackIcon);
+      renderPhotoPreview(kitten?.photoData || "");
+      document.getElementById("kittenPhotoFile").value = "";
+      document.getElementById("kittenName").value = kitten?.name || "";
+      document.getElementById("kittenDays").value = kitten?.days ?? "";
+      document.getElementById("kittenSize").value = kitten?.size || "正常";
+      document.getElementById("kittenColor").value = kitten?.color || colors[state.kittens.length % colors.length];
+      document.getElementById("albumUrl").value = kitten?.albumUrl || "";
+      document.getElementById("kittenMemo").value = kitten?.memo || "";
+      els.modal.classList.add("show");
+      setTimeout(() => document.getElementById("kittenName").focus(), 0);
+    }
+
+    function closeKittenModal() {
+      els.modal.classList.remove("show");
+    }
+
+    function openLoginModal() {
+      const config = loadCloudConfig();
+      document.getElementById("supabaseUrl").value = config.url || "";
+      document.getElementById("supabaseAnonKey").value = config.anonKey || "";
+      document.getElementById("authEmail").value = config.email || "";
+      document.getElementById("spaceCode").value = state.session?.spaceCode || "";
+      document.getElementById("caregiverName").value = state.session?.caregiverName || "";
+      document.getElementById("logoutBtn").style.display = cloud.user ? "inline-flex" : "none";
+      els.loginModal.classList.add("show");
+      setTimeout(() => document.getElementById(config.url ? "authEmail" : "supabaseUrl").focus(), 0);
+    }
+
+    function closeLoginModal() {
+      els.loginModal.classList.remove("show");
+    }
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => els.toast.classList.remove("show"), 1800);
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#039;"
+      }[char]));
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(value).replace(/`/g, "&#096;");
+    }
+
+    document.getElementById("openAddBtn").addEventListener("click", () => {
+      if (state.kittens.length >= 6) {
+        showToast("一次最多 6 隻奶貓");
+        return;
+      }
+      openKittenModal("add");
+    });
+
+    document.getElementById("loginBtn").addEventListener("click", openLoginModal);
+    document.getElementById("editKittenBtn").addEventListener("click", () => openKittenModal("edit"));
+    document.getElementById("closeModalBtn").addEventListener("click", closeKittenModal);
+    document.getElementById("closeLoginBtn").addEventListener("click", closeLoginModal);
+    els.quickKittenSelect.addEventListener("change", event => {
+      selectedId = event.target.value;
+      render();
+    });
+    els.modal.addEventListener("click", event => {
+      if (event.target === els.modal) closeKittenModal();
+    });
+    els.loginModal.addEventListener("click", event => {
+      if (event.target === els.loginModal) closeLoginModal();
+    });
+
+    document.getElementById("loginForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const config = {
+        url: document.getElementById("supabaseUrl").value.trim(),
+        anonKey: document.getElementById("supabaseAnonKey").value.trim(),
+        email: document.getElementById("authEmail").value.trim()
+      };
+      const password = document.getElementById("authPassword").value;
+      const spaceCode = document.getElementById("spaceCode").value.trim();
+      const caregiverName = document.getElementById("caregiverName").value.trim();
+      saveCloudConfig(config);
+      initSupabaseClient(config);
+      if (!supabaseClient) {
+        showToast("Supabase SDK 尚未載入");
+        return;
+      }
+      let auth = await supabaseClient.auth.signInWithPassword({ email: config.email, password });
+      if (auth.error) {
+        auth = await supabaseClient.auth.signUp({ email: config.email, password });
+      }
+      if (auth.error) {
+        showToast(auth.error.message);
+        return;
+      }
+      cloud.user = auth.data.user;
+      if (!cloud.user) {
+        showToast("請先到信箱確認註冊信，再回來登入");
+        return;
+      }
+      const joined = await supabaseClient.rpc("join_care_space_by_code", {
+        space_invite_code: spaceCode,
+        member_display_name: caregiverName
+      });
+      if (joined.error) {
+        const created = await supabaseClient.from("care_spaces").insert({
+          name: state.batch?.name || "奶貓照護空間",
+          invite_code: spaceCode
+        }).select("id").single();
+        if (created.error) {
+          showToast(created.error.message);
+          return;
+        }
+        cloud.careSpaceId = created.data.id;
+      } else {
+        cloud.careSpaceId = joined.data;
+      }
+      state.session = { spaceCode, caregiverName };
+      document.getElementById("caretaker").value = caregiverName;
+      try {
+        await ensureCloudBatch();
+        for (const kitten of state.kittens) await syncKittenToCloud(kitten);
+        showToast("已連上 Supabase 並同步基本資料");
+      } catch (error) {
+        showToast(error.message || "雲端同步失敗");
+      }
+      closeLoginModal();
+      render();
+    });
+
+    document.getElementById("createSpaceBtn").addEventListener("click", async () => {
+      const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+      const inviteCode = `KITTEN-${suffix}`;
+      document.getElementById("spaceCode").value = inviteCode;
+      if (!supabaseClient || !cloud.user) {
+        showToast("已產生代碼，按進入共用空間後會建立");
+        document.getElementById("caregiverName").focus();
+        return;
+      }
+      const { data, error } = await supabaseClient.from("care_spaces").insert({
+        name: state.batch?.name || "奶貓照護空間",
+        invite_code: inviteCode
+      }).select("id").single();
+      if (error) {
+        showToast(error.message);
+        return;
+      }
+      cloud.careSpaceId = data.id;
+      state.session.spaceCode = inviteCode;
+      saveState();
+      showToast("已建立雲端照護空間");
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      if (supabaseClient) await supabaseClient.auth.signOut();
+      cloud = { user: null, careSpaceId: "", batchId: "" };
+      state.session = { spaceCode: "", caregiverName: "" };
+      document.getElementById("caretaker").value = "";
+      closeLoginModal();
+      render();
+      showToast("已登出共用空間");
+    });
+
+    document.getElementById("batchForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      state.batch = {
+        remoteId: state.batch.remoteId || "",
+        name: document.getElementById("batchName").value.trim(),
+        foundDate: document.getElementById("foundDate").value,
+        foundLocation: document.getElementById("foundLocation").value.trim(),
+        status: document.getElementById("batchStatus").value,
+        medicalCheck: document.getElementById("batchMedicalCheck").value.trim()
+      };
+      if (cloudReady()) {
+        try {
+          await ensureCloudBatch();
+          showToast("梯次資料已同步到雲端");
+        } catch (error) {
+          showToast(error.message || "雲端同步失敗");
+        }
+      }
+      render();
+      if (!cloudReady()) showToast("梯次資料已儲存於本機");
+    });
+
+    document.getElementById("kittenIconPicker").addEventListener("click", event => {
+      const button = event.target.closest("[data-icon-index]");
+      if (!button) return;
+      renderIconPicker(Number(button.dataset.iconIndex));
+    });
+
+    document.getElementById("kittenPhotoFile").addEventListener("change", async event => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      if (!file.type.startsWith("image/")) {
+        showToast("請選擇照片檔");
+        return;
+      }
+      try {
+        const photoData = await resizeImageFile(file);
+        renderPhotoPreview(photoData);
+        showToast("相框照已載入，記得儲存");
+      } catch {
+        showToast("照片讀取失敗");
+      }
+    });
+
+    document.getElementById("removePhotoBtn").addEventListener("click", () => {
+      renderPhotoPreview("");
+      document.getElementById("kittenPhotoFile").value = "";
+      showToast("已移除相框照，記得儲存");
+    });
+
+    document.getElementById("kittenForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const id = document.getElementById("kittenId").value;
+      const payload = {
+        name: document.getElementById("kittenName").value.trim(),
+        days: Number(document.getElementById("kittenDays").value),
+        size: document.getElementById("kittenSize").value,
+        color: document.getElementById("kittenColor").value,
+        iconIndex: Number(document.getElementById("kittenIconIndex").value || 0),
+        photoData: document.getElementById("kittenPhotoData").value,
+        albumUrl: document.getElementById("albumUrl").value.trim(),
+        memo: document.getElementById("kittenMemo").value.trim()
+      };
+      let kitten;
+      if (id) {
+        kitten = state.kittens.find(k => k.id === id);
+        Object.assign(kitten, payload);
+      } else {
+        kitten = { id: crypto.randomUUID(), ...payload, remoteId: "", records: [], formulaRecords: [], medicalRecords: [] };
+        state.kittens.push(kitten);
+        selectedId = kitten.id;
+      }
+      if (cloudReady()) {
+        try {
+          await syncKittenToCloud(kitten);
+          showToast("奶貓資料已同步到雲端");
+        } catch (error) {
+          showToast(error.message || "雲端同步失敗");
+        }
+      }
+      closeKittenModal();
+      render();
+      if (!cloudReady()) showToast("奶貓資料已儲存於本機");
+    });
+
+    document.getElementById("removeKittenBtn").addEventListener("click", () => {
+      const kitten = currentKitten();
+      if (!kitten) return;
+      if (!confirm(`確定刪除 ${kitten.name} 和所有紀錄？`)) return;
+      state.kittens = state.kittens.filter(k => k.id !== kitten.id);
+      selectedId = state.kittens[0]?.id || "";
+      closeKittenModal();
+      render();
+      showToast("已刪除奶貓");
+    });
+
+    document.getElementById("stoolGroup").addEventListener("click", event => {
+      const button = event.target.closest("[data-stool]");
+      if (!button) return;
+      selectedStool = button.dataset.stool;
+      document.querySelectorAll("[data-stool]").forEach(el => el.classList.toggle("active", el === button));
+    });
+
+    document.getElementById("poop").addEventListener("change", event => {
+      if (!event.target.checked) {
+        selectedStool = "無";
+        document.querySelectorAll("[data-stool]").forEach(el => el.classList.toggle("active", el.dataset.stool === "無"));
+      } else if (selectedStool === "無") {
+        selectedStool = "成形";
+        document.querySelectorAll("[data-stool]").forEach(el => el.classList.toggle("active", el.dataset.stool === "成形"));
+      }
+    });
+
+    document.getElementById("careForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const kitten = currentKitten();
+      if (!kitten) return;
+      const record = {
+        id: crypto.randomUUID(),
+        time: new Date(document.getElementById("careTime").value).toISOString(),
+        caretaker: document.getElementById("caretaker").value.trim() || state.session?.caregiverName || "",
+        milk: Number(document.getElementById("milkAmount").value || 0),
+        weight: Number(document.getElementById("weight").value || 0),
+        pee: document.getElementById("pee").checked,
+        poop: document.getElementById("poop").checked,
+        stool: document.getElementById("poop").checked ? selectedStool : "無",
+        note: document.getElementById("note").value.trim()
+      };
+      kitten.records.push(record);
+      if (cloudReady()) {
+        try {
+          await syncCareRecordToCloud(kitten, record);
+          showToast("照護紀錄已同步到雲端");
+        } catch (error) {
+          showToast(error.message || "雲端同步失敗");
+        }
+      }
+      document.getElementById("milkAmount").value = "";
+      document.getElementById("weight").value = "";
+      document.getElementById("pee").checked = false;
+      document.getElementById("poop").checked = false;
+      document.getElementById("note").value = "";
+      selectedStool = "無";
+      document.querySelectorAll("[data-stool]").forEach(el => el.classList.toggle("active", el.dataset.stool === "無"));
+      setDateTimeNow();
+      render();
+      if (!cloudReady()) showToast("照護紀錄已儲存於本機");
+    });
+
+    document.getElementById("formulaForm").addEventListener("submit", event => {
+      event.preventDefault();
+      const kitten = currentKitten();
+      if (!kitten) return;
+      const active = document.getElementById("formulaActive").checked;
+      if (active) kitten.formulaRecords.forEach(record => record.active = false);
+      kitten.formulaRecords.push({
+        id: crypto.randomUUID(),
+        brand: document.getElementById("formulaBrand").value.trim(),
+        series: document.getElementById("formulaSeries").value.trim(),
+        opened: document.getElementById("formulaOpened").value,
+        ratio: document.getElementById("formulaRatio").value.trim(),
+        active,
+        note: document.getElementById("formulaNote").value.trim()
+      });
+      document.getElementById("formulaBrand").value = "";
+      document.getElementById("formulaSeries").value = "";
+      document.getElementById("formulaRatio").value = "";
+      document.getElementById("formulaNote").value = "";
+      document.getElementById("formulaActive").checked = true;
+      setDateTimeNow();
+      render();
+      showToast("奶粉資料已儲存");
+    });
+
+    document.getElementById("medicalForm").addEventListener("submit", event => {
+      event.preventDefault();
+      const kitten = currentKitten();
+      if (!kitten) return;
+      kitten.medicalRecords.push({
+        id: crypto.randomUUID(),
+        date: document.getElementById("medicalDate").value,
+        type: document.getElementById("medicalType").value,
+        item: document.getElementById("medicalItem").value.trim(),
+        nextDue: document.getElementById("nextDue").value,
+        note: document.getElementById("medicalNote").value.trim()
+      });
+      document.getElementById("medicalItem").value = "";
+      document.getElementById("nextDue").value = "";
+      document.getElementById("medicalNote").value = "";
+      setDateTimeNow();
+      render();
+      showToast("醫療紀錄已儲存");
+    });
+
+    document.getElementById("deleteRecordBtn").addEventListener("click", () => {
+      const kitten = currentKitten();
+      if (!kitten || !kitten.records.length) return;
+      const latest = latestRecord(kitten);
+      kitten.records = kitten.records.filter(record => record.id !== latest.id);
+      render();
+      showToast("已刪除最近一筆紀錄");
+    });
+
+    document.getElementById("deleteFormulaBtn").addEventListener("click", () => {
+      const kitten = currentKitten();
+      if (!kitten || !kitten.formulaRecords.length) return;
+      const latest = kitten.formulaRecords[kitten.formulaRecords.length - 1];
+      kitten.formulaRecords = kitten.formulaRecords.filter(record => record.id !== latest.id);
+      render();
+      showToast("已刪除最近一筆奶粉資料");
+    });
+
+    document.getElementById("deleteMedicalBtn").addEventListener("click", () => {
+      const kitten = currentKitten();
+      if (!kitten || !kitten.medicalRecords.length) return;
+      const latest = latestMedical(kitten);
+      kitten.medicalRecords = kitten.medicalRecords.filter(record => record.id !== latest.id);
+      render();
+      showToast("已刪除最近一筆醫療紀錄");
+    });
+
+    document.getElementById("refreshHandoffBtn").addEventListener("click", () => {
+      renderHandoff();
+      showToast("交班摘要已更新");
+    });
+
+    async function boot() {
+      setDateTimeNow();
+      const client = initSupabaseClient();
+      if (client) {
+        const { data } = await client.auth.getUser();
+        cloud.user = data.user || null;
+      }
+      render();
+    }
+
+    boot();
+  </script>
+</body>
+</html>

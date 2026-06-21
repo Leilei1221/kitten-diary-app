@@ -1,0 +1,12 @@
+node_modules/
+work/
+.DS_Store
+*.log
+
+# Supabase local runtime/cache files. Keep migrations tracked.
+supabase/.temp/
+
+# Local secrets should never be committed.
+.env
+.env.*
+!.env.example
