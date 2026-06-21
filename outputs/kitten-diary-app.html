@@ -1504,6 +1504,10 @@
   <script>
     const STORAGE_KEY = "kitten-diary-v1";
     const CLOUD_CONFIG_KEY = "kitten-diary-supabase-config-v1";
+    const DEFAULT_CLOUD_CONFIG = {
+      url: "https://fcstpyiggvhduaztwlrf.supabase.co",
+      anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjc3RweWlnZ3ZoZHVhenR3bHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMzkyODgsImV4cCI6MjA5NzYxNTI4OH0.aPKpftMYWMPGcFUOT8E_3mlVHgYjasZinCyfMx9w_h4"
+    };
     const CAT_ICON_PATHS = Array.from({ length: 12 }, (_, index) => `assets/cat-icon-${String(index + 1).padStart(2, "0")}.png`);
     const colors = ["sky", "pink", "yellow", "mint", "gray", "peach"];
     let selectedStool = "無";
@@ -1622,9 +1626,9 @@
 
     function loadCloudConfig() {
       try {
-        return JSON.parse(localStorage.getItem(CLOUD_CONFIG_KEY) || "{}");
+        return { ...DEFAULT_CLOUD_CONFIG, ...JSON.parse(localStorage.getItem(CLOUD_CONFIG_KEY) || "{}") };
       } catch {
-        return {};
+        return { ...DEFAULT_CLOUD_CONFIG };
       }
     }
 
