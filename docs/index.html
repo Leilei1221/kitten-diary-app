@@ -1709,6 +1709,12 @@
       return data.id;
     }
 
+    async function deleteKittenFromCloud(kitten) {
+      if (!cloudReady() || !kitten?.remoteId) return;
+      const { error } = await supabaseClient.from("kittens").delete().eq("id", kitten.remoteId);
+      if (error) throw error;
+    }
+
     async function syncCareRecordToCloud(kitten, record) {
       if (!cloudReady()) return;
       const kittenId = await syncKittenToCloud(kitten);
@@ -2393,12 +2399,20 @@
       if (!cloudReady()) showToast("奶貓資料已儲存於本機");
     });
 
-    document.getElementById("removeKittenBtn").addEventListener("click", () => {
-      const kitten = currentKitten();
+    document.getElementById("removeKittenBtn").addEventListener("click", async () => {
+      const editingId = document.getElementById("kittenId").value;
+      const kitten = state.kittens.find(k => k.id === editingId) || currentKitten();
       if (!kitten) return;
       if (!confirm(`確定刪除 ${kitten.name} 和所有紀錄？`)) return;
+      try {
+        await deleteKittenFromCloud(kitten);
+      } catch (error) {
+        showToast(error.message || "雲端刪除失敗，請稍後再試");
+        return;
+      }
       state.kittens = state.kittens.filter(k => k.id !== kitten.id);
-      selectedId = state.kittens[0]?.id || "";
+      selectedId = selectedId === kitten.id ? state.kittens[0]?.id || "" : selectedId;
+      saveState();
       closeKittenModal();
       render();
       showToast("已刪除奶貓");
