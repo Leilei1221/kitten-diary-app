@@ -364,6 +364,33 @@
     .advanced-settings[open] summary { border-bottom: 1.5px solid var(--line); }
     .advanced-settings .form-grid { padding: 16px; background: var(--surface); }
 
+    /* ===== 精靈式登入流程 ===== */
+    .wizard { width: min(520px, 100%); }
+    .wiz-hint { color: var(--ink-soft); font-size: 14px; line-height: 1.6; margin: 0 0 16px; }
+    .role-card {
+      width: 100%; display: grid; grid-template-columns: 52px minmax(0,1fr); gap: 14px; align-items: center;
+      text-align: left; border: 1.5px solid var(--line-strong); border-radius: var(--r);
+      background: var(--cream); padding: 16px; margin-bottom: 12px;
+      transition: transform .14s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+    .role-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--brand); }
+    .role-emoji {
+      width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center;
+      font-size: 27px; background: var(--brand-wash); border: 2px solid #fff;
+    }
+    .role-card strong { display: block; font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+    .role-card span { color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .wiz-foot { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; }
+    .wiz-back {
+      background: none; color: var(--brand-deep); font-weight: 700; font-size: 14px;
+      padding: 6px 0; margin-bottom: 6px; display: inline-flex; align-items: center;
+    }
+    .wiz-substep { margin: 0 0 6px; font-size: 18px; font-weight: 800; }
+    @media (max-width: 680px) {
+      .wizard { width: 100%; }
+      .role-card { padding: 14px; }
+    }
+
     .event-head { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
     .event-title { font-weight: 800; font-size: 15px; }
     .event-time { color: var(--muted); font-size: 12px; white-space: nowrap; }
@@ -1014,37 +1041,70 @@
   </div>
 
   <div class="modal-backdrop" id="loginModal">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+    <div class="modal wizard" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
       <h2 id="loginTitle">共用照護空間</h2>
-      <form id="loginForm" class="form-grid">
-        <div class="field">
-          <label for="authEmail">Email</label>
-          <input id="authEmail" type="email" placeholder="you@example.com" required>
-        </div>
-        <div class="field">
-          <label for="authPassword">密碼</label>
-          <input id="authPassword" type="password" minlength="6" placeholder="至少 6 個字" required>
-        </div>
-        <div class="field">
-          <label for="spaceCode">照護空間代碼</label>
-          <input id="spaceCode" maxlength="24" placeholder="例如：KITTEN-0621" required>
-        </div>
-        <div class="field">
-          <label for="caregiverName">照顧者名稱</label>
-          <input id="caregiverName" maxlength="18" placeholder="例如：早班、阿雷" required>
-        </div>
-        <div class="field full">
-          <label class="check"><input id="signupMode" type="checkbox"> 我是第一次使用，要先註冊這個 Email</label>
-        </div>
-        <div class="field full">
-          <label for="loginNote">加入方式</label>
-          <textarea id="loginNote" readonly>已註冊者直接按「進入共用空間」。第一次使用請勾選註冊，再按「進入共用空間」。主要登記者按「產生邀請碼」，把代碼、連結或 QR Code 傳給共同照護者。</textarea>
-        </div>
-        <div class="simple-invite">
+
+      <!-- 步驟 0：選擇我要做什麼 -->
+      <div id="wizPickRole" class="wiz-step">
+        <p class="wiz-hint" id="wizStatusLine">請選擇你現在要做的事：</p>
+        <button class="role-card" type="button" data-role="create">
+          <div class="role-emoji">🐣</div>
           <div>
-            <label>目前邀請碼</label>
+            <strong>第一次設定（我是主要照顧者）</strong>
+            <span>建立一個新的照護空間，把目前的奶貓資料存上雲端</span>
+          </div>
+        </button>
+        <button class="role-card" type="button" data-role="login">
+          <div class="role-emoji">🔑</div>
+          <div>
+            <strong>我已經設定過了，要登入</strong>
+            <span>用原本的 Email 和密碼登入，看到雲端的奶貓資料</span>
+          </div>
+        </button>
+        <button class="role-card" type="button" data-role="join">
+          <div class="role-emoji">🤝</div>
+          <div>
+            <strong>我要加入別人的照護空間</strong>
+            <span>用對方給的邀請碼，一起照顧同一批奶貓</span>
+          </div>
+        </button>
+        <div class="wiz-foot">
+          <button class="ghost-btn" id="wizCloseTop" type="button">關閉</button>
+          <button class="ghost-btn" id="wizLogoutTop" type="button" style="display:none">登出目前帳號</button>
+        </div>
+      </div>
+
+      <!-- 步驟 1：填資料 -->
+      <form id="loginForm" class="wiz-step" style="display:none">
+        <button class="wiz-back" id="wizBack" type="button">← 上一步</button>
+        <h3 class="wiz-substep" id="wizFormTitle">建立新的照護空間</h3>
+        <p class="wiz-hint" id="wizFormHint"></p>
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="authEmail">Email</label>
+            <input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email" required>
+          </div>
+          <div class="field">
+            <label for="authPassword">密碼</label>
+            <input id="authPassword" type="password" minlength="6" placeholder="至少 6 個字" autocomplete="current-password" required>
+          </div>
+          <div class="field">
+            <label for="spaceCode" id="spaceCodeLabel">照護空間代碼</label>
+            <input id="spaceCode" maxlength="24" placeholder="例如：KITTEN-0621" required>
+          </div>
+          <div class="field">
+            <label for="caregiverName">你的稱呼</label>
+            <input id="caregiverName" maxlength="18" placeholder="例如：蕾蕾、早班" required>
+          </div>
+        </div>
+
+        <!-- 建立成功後才出現的邀請區 -->
+        <div class="simple-invite" id="inviteBox" style="display:none">
+          <div>
+            <label>把這個邀請給共同照顧者</label>
             <div class="invite-code" id="inviteCodeText">尚未產生</div>
-            <div class="invite-link" id="inviteLinkText">產生邀請碼後會出現加入連結</div>
+            <div class="invite-link" id="inviteLinkText"></div>
             <div class="invite-actions">
               <button class="ghost-btn" id="copyInviteBtn" type="button">複製邀請</button>
               <button class="ghost-btn" id="shareInviteBtn" type="button">分享</button>
@@ -1052,8 +1112,9 @@
           </div>
           <img class="invite-qr" id="inviteQr" src="" alt="邀請加入 QR Code">
         </div>
-        <details class="advanced-settings">
-          <summary>進階設定</summary>
+
+        <details class="advanced-settings" id="advBox">
+          <summary>進階設定（Supabase 連線，通常不用動）</summary>
           <div class="form-grid">
             <div class="field full">
               <label for="supabaseUrl">Supabase URL</label>
@@ -1065,12 +1126,14 @@
             </div>
           </div>
         </details>
+
+        <!-- 這些是舊邏輯需要的隱藏欄位，保留以相容既有 JS -->
         <input id="spaceMode" type="hidden" value="join">
+        <label class="check" style="display:none"><input id="signupMode" type="checkbox"> 註冊</label>
+        <textarea id="loginNote" readonly style="display:none"></textarea>
+
         <div class="modal-actions field full">
-          <button class="primary-btn" id="loginSubmitBtn" type="submit">進入共用空間</button>
-          <button class="ghost-btn" id="createSpaceBtn" type="button">產生邀請碼</button>
-          <button class="ghost-btn" id="closeLoginBtn" type="button">取消</button>
-          <button class="danger-btn" id="logoutBtn" type="button">登出</button>
+          <button class="primary-btn" id="wizPrimaryBtn" type="submit">下一步</button>
         </div>
       </form>
     </div>
@@ -2175,21 +2238,23 @@
       return url.toString();
     }
 
-    function updateInvitePreview(code = document.getElementById("spaceCode").value.trim()) {
+    function updateInvitePreview(code = (document.getElementById("spaceCode")?.value || "").trim()) {
+      const codeEl = document.getElementById("spaceCode");
       const normalized = code.toUpperCase();
-      if (normalized && document.getElementById("spaceCode").value !== normalized) {
-        document.getElementById("spaceCode").value = normalized;
+      if (codeEl && normalized && codeEl.value !== normalized) {
+        codeEl.value = normalized;
       }
+      if (!els.inviteCodeText) return;
       if (!normalized) {
         els.inviteCodeText.textContent = "尚未產生";
-        els.inviteLinkText.textContent = "產生邀請碼後會出現加入連結";
-        els.inviteQr.removeAttribute("src");
+        if (els.inviteLinkText) els.inviteLinkText.textContent = "";
+        if (els.inviteQr) els.inviteQr.removeAttribute("src");
         return;
       }
       const link = inviteLinkFor(normalized);
       els.inviteCodeText.textContent = normalized;
-      els.inviteLinkText.textContent = link;
-      els.inviteQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(link)}`;
+      if (els.inviteLinkText) els.inviteLinkText.textContent = link;
+      if (els.inviteQr) els.inviteQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(link)}`;
     }
 
     async function copyText(text) {
@@ -2205,6 +2270,8 @@
       area.remove();
     }
 
+    let wizRole = "";
+
     function openLoginModal() {
       const config = loadCloudConfig();
       const invitedCode = inviteCodeFromUrl();
@@ -2212,14 +2279,78 @@
       document.getElementById("supabaseAnonKey").value = config.anonKey || "";
       document.getElementById("authEmail").value = config.email || "";
       document.getElementById("spaceCode").value = invitedCode || config.spaceCode || state.session?.spaceCode || "";
-      document.getElementById("spaceMode").value = "join";
       document.getElementById("caregiverName").value = config.caregiverName || state.session?.caregiverName || "";
-      document.getElementById("logoutBtn").style.display = cloud.user ? "inline-flex" : "none";
-      updateInvitePreview();
+
+      // 已登入：狀態列顯示帳號，並露出登出
+      const statusLine = document.getElementById("wizStatusLine");
+      const logoutTop = document.getElementById("wizLogoutTop");
+      if (cloud.user) {
+        statusLine.textContent = `目前已登入：${state.session?.caregiverName || cloud.user.email}。可切換動作，或登出。`;
+        logoutTop.style.display = "inline-flex";
+      } else {
+        statusLine.textContent = "請選擇你現在要做的事：";
+        logoutTop.style.display = "none";
+      }
+
+      // 一律從「選角色」開始
+      showWizStep("pick");
+      // 若是透過邀請連結進來，直接幫他跳到「加入」
+      if (invitedCode) selectWizRole("join");
+
       els.loginModal.classList.add("show");
+    }
+
+    function showWizStep(step) {
+      document.getElementById("wizPickRole").style.display = step === "pick" ? "block" : "none";
+      document.getElementById("loginForm").style.display = step === "form" ? "block" : "none";
+    }
+
+    function selectWizRole(role) {
+      wizRole = role;
+      const title = document.getElementById("wizFormTitle");
+      const hint = document.getElementById("wizFormHint");
+      const primary = document.getElementById("wizPrimaryBtn");
+      const codeLabel = document.getElementById("spaceCodeLabel");
+      const codeInput = document.getElementById("spaceCode");
+      const inviteBox = document.getElementById("inviteBox");
+      const signup = document.getElementById("signupMode");
+      const spaceMode = document.getElementById("spaceMode");
+
+      inviteBox.style.display = "none"; // 預設收起，建立成功後才顯示
+
+      if (role === "create") {
+        title.textContent = "第一次設定：建立照護空間";
+        hint.textContent = "幫這個空間取一個代碼（之後共照者要用它加入）。按下去就會註冊帳號、建立空間，並把目前的奶貓資料存上雲端。";
+        primary.textContent = "建立空間並上傳資料";
+        codeLabel.textContent = "幫空間取一個代碼";
+        codeInput.placeholder = "例如：KITTEN-0621";
+        codeInput.readOnly = false;
+        signup.checked = true;        // 建立＝需要註冊
+        spaceMode.value = "create";
+      } else if (role === "login") {
+        title.textContent = "登入";
+        hint.textContent = "用你之前設定好的 Email、密碼和空間代碼登入，就會看到雲端的奶貓資料。";
+        primary.textContent = "登入";
+        codeLabel.textContent = "照護空間代碼";
+        codeInput.placeholder = "例如：KITTEN-0621";
+        codeInput.readOnly = false;
+        signup.checked = false;       // 登入＝不要註冊
+        spaceMode.value = "join";
+      } else if (role === "join") {
+        title.textContent = "加入別人的照護空間";
+        hint.textContent = "輸入對方給你的邀請碼，再用你自己的 Email、密碼登入或註冊，就能一起照顧同一批奶貓。";
+        primary.textContent = "加入空間";
+        codeLabel.textContent = "對方給的邀請碼";
+        codeInput.placeholder = "貼上邀請碼";
+        codeInput.readOnly = false;
+        signup.checked = false;       // 預設當作已有帳號；若沒帳號系統會提示
+        spaceMode.value = "join";
+      }
+
+      showWizStep("form");
       setTimeout(() => {
-        document.getElementById("authEmail").scrollIntoView({ block: "center" });
-        document.getElementById("authEmail").focus();
+        const emailEl = document.getElementById("authEmail");
+        if (emailEl) { emailEl.scrollIntoView({ block: "center" }); emailEl.focus(); }
       }, 0);
     }
 
@@ -2357,7 +2488,14 @@
     document.getElementById("loginBtn").addEventListener("click", openLoginModal);
     document.getElementById("editKittenBtn").addEventListener("click", () => openKittenModal("edit"));
     document.getElementById("closeModalBtn").addEventListener("click", closeKittenModal);
-    document.getElementById("closeLoginBtn").addEventListener("click", closeLoginModal);
+
+    // 精靈：角色卡片
+    document.querySelectorAll("[data-role]").forEach(card => {
+      card.addEventListener("click", () => selectWizRole(card.dataset.role));
+    });
+    document.getElementById("wizBack").addEventListener("click", () => showWizStep("pick"));
+    document.getElementById("wizCloseTop").addEventListener("click", closeLoginModal);
+
     els.quickKittenSelect.addEventListener("change", event => {
       selectedId = event.target.value;
       render();
@@ -2369,7 +2507,6 @@
       if (event.target === els.loginModal) closeLoginModal();
     });
     document.getElementById("spaceCode").addEventListener("input", event => {
-      document.getElementById("spaceMode").value = "join";
       updateInvitePreview(event.target.value);
     });
     document.getElementById("copyInviteBtn").addEventListener("click", async () => {
@@ -2402,8 +2539,17 @@
 
     document.getElementById("loginForm").addEventListener("submit", async event => {
       event.preventDefault();
-      const submitButton = document.getElementById("loginSubmitBtn");
+      const submitButton = document.getElementById("wizPrimaryBtn");
+      const origLabel = submitButton.textContent;
       submitButton.disabled = true;
+      submitButton.textContent = "處理中…";
+
+      const finish = (msg) => {
+        if (msg) showToast(msg);
+        submitButton.disabled = false;
+        submitButton.textContent = origLabel;
+      };
+
       const config = {
         url: document.getElementById("supabaseUrl").value.trim(),
         anonKey: document.getElementById("supabaseAnonKey").value.trim(),
@@ -2412,97 +2558,115 @@
       const password = document.getElementById("authPassword").value;
       const spaceCode = document.getElementById("spaceCode").value.trim().toUpperCase();
       const caregiverName = document.getElementById("caregiverName").value.trim();
-      const isCreatingSpace = document.getElementById("spaceMode").value === "create";
-      const isSignup = document.getElementById("signupMode").checked;
+
+      if (!config.url || !config.anonKey) {
+        document.getElementById("advBox").open = true;
+        return finish("請先在進階設定填入 Supabase URL 與 anon key");
+      }
+      if (!spaceCode) return finish("請填寫空間代碼");
+      if (!caregiverName) return finish("請填寫你的稱呼");
+
       saveCloudConfig(config);
       initSupabaseClient(config);
-      if (!supabaseClient) {
-        showToast("請先在進階設定填入 Supabase URL 與 anon key");
-        submitButton.disabled = false;
-        return;
-      }
-      const auth = isSignup
-        ? await supabaseClient.auth.signUp({ email: config.email, password })
-        : await supabaseClient.auth.signInWithPassword({ email: config.email, password });
-      if (auth.error) {
-        showToast(friendlyError(auth.error));
-        submitButton.disabled = false;
-        return;
-      }
-      cloud.user = auth.data.user;
-      if (!cloud.user) {
-        showToast("請先到信箱確認註冊信，再回來登入");
-        submitButton.disabled = false;
-        return;
-      }
-      const joined = await supabaseClient.rpc("join_care_space_by_code", {
-        space_invite_code: spaceCode,
-        member_display_name: caregiverName
-      });
-      if (joined.error) {
-        if (!isCreatingSpace) {
-          showToast("找不到這組邀請碼，請確認主要登記者已建立共用空間");
-          submitButton.disabled = false;
-          return;
+      if (!supabaseClient) return finish("Supabase 連線設定不完整");
+
+      // 依角色決定要不要先註冊
+      // create：一定註冊；login：一定不註冊；join：先試登入，失敗再自動註冊
+      try {
+        if (wizRole === "create") {
+          const up = await supabaseClient.auth.signUp({ email: config.email, password });
+          if (up.error && !String(up.error.message).includes("already registered")) {
+            return finish(friendlyError(up.error));
+          }
+          // 不論剛註冊或已存在，都再登入一次取得 session
+          const inLogin = await supabaseClient.auth.signInWithPassword({ email: config.email, password });
+          if (inLogin.error) return finish(friendlyError(inLogin.error));
+          cloud.user = inLogin.data.user;
+        } else if (wizRole === "login") {
+          const inLogin = await supabaseClient.auth.signInWithPassword({ email: config.email, password });
+          if (inLogin.error) return finish(friendlyError(inLogin.error));
+          cloud.user = inLogin.data.user;
+        } else { // join
+          let inLogin = await supabaseClient.auth.signInWithPassword({ email: config.email, password });
+          if (inLogin.error) {
+            // 沒帳號 → 自動幫他註冊一個
+            const up = await supabaseClient.auth.signUp({ email: config.email, password });
+            if (up.error) return finish(friendlyError(up.error));
+            inLogin = await supabaseClient.auth.signInWithPassword({ email: config.email, password });
+            if (inLogin.error) return finish(friendlyError(inLogin.error));
+          }
+          cloud.user = inLogin.data.user;
         }
-        const created = await supabaseClient.from("care_spaces").insert({
-          name: state.batch?.name || "奶貓照護空間",
-          invite_code: spaceCode
-        }).select("id").single();
-        if (created.error) {
-          showToast(friendlyError(created.error));
-          submitButton.disabled = false;
-          return;
-        }
-        cloud.careSpaceId = created.data.id;
-      } else {
-        cloud.careSpaceId = joined.data;
+      } catch (error) {
+        return finish(friendlyError(error));
       }
+
+      if (!cloud.user) return finish("登入未完成，請確認 Email 與密碼");
+
+      // 建立或加入空間
+      try {
+        if (wizRole === "create") {
+          // 先嘗試用這個代碼加入（萬一之前已建過），加入不到再新建
+          const joined = await supabaseClient.rpc("join_care_space_by_code", {
+            space_invite_code: spaceCode,
+            member_display_name: caregiverName
+          });
+          if (!joined.error && joined.data) {
+            cloud.careSpaceId = joined.data;
+          } else {
+            const created = await supabaseClient.from("care_spaces").insert({
+              name: state.batch?.name || "奶貓照護空間",
+              invite_code: spaceCode
+            }).select("id").single();
+            if (created.error) return finish(friendlyError(created.error));
+            cloud.careSpaceId = created.data.id;
+            // 建立者也加入自己的空間（取得成員身分）
+            await supabaseClient.rpc("join_care_space_by_code", {
+              space_invite_code: spaceCode,
+              member_display_name: caregiverName
+            });
+          }
+        } else {
+          const joined = await supabaseClient.rpc("join_care_space_by_code", {
+            space_invite_code: spaceCode,
+            member_display_name: caregiverName
+          });
+          if (joined.error || !joined.data) {
+            return finish("找不到這組空間代碼。請確認代碼正確，或改用「第一次設定」建立它。");
+          }
+          cloud.careSpaceId = joined.data;
+        }
+      } catch (error) {
+        return finish(friendlyError(error));
+      }
+
       state.session = { spaceCode, caregiverName };
       saveCloudConfig({ ...config, careSpaceId: cloud.careSpaceId, spaceCode, caregiverName });
       document.getElementById("caretaker").value = caregiverName;
+
       try {
-        if (isCreatingSpace) {
+        if (wizRole === "create") {
           await syncLocalStateToCloud();
-          showToast("已建立共用空間並上傳目前資料");
+          // 建立成功 → 在視窗內顯示邀請碼讓她分享
+          updateInvitePreview(spaceCode);
+          document.getElementById("inviteBox").style.display = "grid";
+          showToast("空間已建立，奶貓資料已上傳雲端！");
+          finish("");
+          render();
+          return; // 停在視窗，讓她看到/複製邀請碼
         } else {
           await loadCloudState();
-          showToast("已加入共用空間並載入雲端資料");
+          showToast("登入成功，已載入雲端資料");
         }
       } catch (error) {
         showToast(friendlyError(error) || "雲端同步失敗");
       }
       closeLoginModal();
-      submitButton.disabled = false;
+      finish("");
       render();
     });
 
-    document.getElementById("createSpaceBtn").addEventListener("click", async () => {
-      const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
-      const inviteCode = `KITTEN-${suffix}`;
-      document.getElementById("spaceCode").value = inviteCode;
-      document.getElementById("spaceMode").value = "create";
-      updateInvitePreview(inviteCode);
-      if (!supabaseClient || !cloud.user) {
-        showToast("已產生邀請碼，按進入共用空間完成建立");
-        document.getElementById("caregiverName").focus();
-        return;
-      }
-      const { data, error } = await supabaseClient.from("care_spaces").insert({
-        name: state.batch?.name || "奶貓照護空間",
-        invite_code: inviteCode
-      }).select("id").single();
-      if (error) {
-        showToast(friendlyError(error));
-        return;
-      }
-      cloud.careSpaceId = data.id;
-      state.session.spaceCode = inviteCode;
-      saveState();
-      showToast("已建立雲端照護空間，可分享邀請碼");
-    });
-
-    document.getElementById("logoutBtn").addEventListener("click", async () => {
+    document.getElementById("wizLogoutTop").addEventListener("click", async () => {
       if (supabaseClient) await supabaseClient.auth.signOut();
       cloud = { user: null, careSpaceId: "", batchId: "" };
       state.session = { spaceCode: "", caregiverName: "" };
