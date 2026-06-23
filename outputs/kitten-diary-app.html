@@ -1209,6 +1209,12 @@
       .modal-actions {
         display: grid;
         grid-template-columns: 1fr 1fr;
+        position: sticky;
+        bottom: -14px;
+        background: var(--surface);
+        border-top: 1px solid var(--line);
+        padding-top: 10px;
+        padding-bottom: max(8px, env(safe-area-inset-bottom));
       }
 
       .modal-actions .primary-btn {
@@ -1326,7 +1332,13 @@
           <div class="panel">
             <div class="section-title">
               <h2 class="title-with-icon"><svg class="title-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4z"/><path d="M8 7V4h8v3"/><path d="M8 12h8M8 16h5"/></svg>梯次資料</h2>
-              <span class="count" id="batchSummary">尚未儲存</span>
+              <div class="event-actions">
+                <span class="count" id="batchSummary">尚未儲存</span>
+                <button class="danger-btn" id="deleteBatchBtn" type="button">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/></svg>
+                  刪除目前梯次
+                </button>
+              </div>
             </div>
             <form id="batchForm" class="form-grid">
               <div class="field">
@@ -1358,7 +1370,7 @@
               <div class="field full">
                 <button class="primary-btn" type="submit">
                   <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-                  儲存梯次資料
+                  儲存 / 更新梯次資料
                 </button>
               </div>
             </form>
@@ -1735,10 +1747,10 @@
         </details>
         <input id="spaceMode" type="hidden" value="join">
         <div class="modal-actions field full">
-          <button class="ghost-btn" id="closeLoginBtn" type="button">取消</button>
+          <button class="primary-btn" id="loginSubmitBtn" type="submit">進入共用空間</button>
           <button class="ghost-btn" id="createSpaceBtn" type="button">產生邀請碼</button>
+          <button class="ghost-btn" id="closeLoginBtn" type="button">取消</button>
           <button class="danger-btn" id="logoutBtn" type="button">登出</button>
-          <button class="primary-btn" type="submit">進入共用空間</button>
         </div>
       </form>
     </div>
@@ -2164,6 +2176,19 @@
       if (error) throw error;
     }
 
+    async function deleteBatchFromCloud(batch) {
+      if (!cloudReady() || !batch?.remoteId) return;
+      const remoteKittenIds = state.kittens
+        .filter(kitten => kitten.batchId === batch.id && kitten.remoteId)
+        .map(kitten => kitten.remoteId);
+      if (remoteKittenIds.length) {
+        const { error: kittenError } = await supabaseClient.from("kittens").delete().in("id", remoteKittenIds);
+        if (kittenError) throw kittenError;
+      }
+      const { error } = await supabaseClient.from("care_batches").delete().eq("id", batch.remoteId);
+      if (error) throw error;
+    }
+
     async function syncLocalStateToCloud() {
       if (!cloudReady()) return;
       for (const batch of state.batches) await ensureCloudBatch(batch);
@@ -2396,7 +2421,7 @@
           <button class="batch-card ${batch.id === selectedBatchId ? "active" : ""}" type="button" data-batch-id="${batch.id}">
             <strong>${escapeHtml(batch.name || "未命名梯次")}</strong>
             <span>${escapeHtml(meta)}</span>
-            <span>${count} 隻奶貓</span>
+            <span>${count} 隻奶貓｜點選後可修改下方資料</span>
           </button>
         `;
       }).join("");
@@ -2417,6 +2442,7 @@
       document.getElementById("foundLocation").value = batch.foundLocation || "";
       document.getElementById("batchStatus").value = batch.status || "觀察中";
       document.getElementById("batchMedicalCheck").value = batch.medicalCheck || "";
+      document.getElementById("deleteBatchBtn").disabled = !batch.id;
       els.batchSummary.textContent = batch.name ? `${batch.name}｜${batch.status || "觀察中"}` : "尚未儲存";
     }
 
@@ -2903,11 +2929,29 @@
       els.loginModal.classList.remove("show");
     }
 
+    function friendlyError(error) {
+      const message = String(error?.message || error || "");
+      const cooldown = message.match(/after\s+(\d+)\s+seconds/i);
+      if (message.includes("security purposes") && cooldown) {
+        return `安全限制：剛剛送出太多次，請等 ${cooldown[1]} 秒後再試。`;
+      }
+      if (message.includes("Invalid login credentials")) {
+        return "Email 或密碼不正確，請確認是否已註冊或密碼是否輸入正確。";
+      }
+      if (message.includes("Email not confirmed")) {
+        return "請先到信箱完成確認信，再回來登入。";
+      }
+      if (message.includes("User already registered")) {
+        return "這個 Email 已註冊，請直接用原本密碼登入。";
+      }
+      return message || "操作失敗，請稍後再試。";
+    }
+
     function showToast(message) {
       els.toast.textContent = message;
       els.toast.classList.add("show");
       clearTimeout(showToast.timer);
-      showToast.timer = setTimeout(() => els.toast.classList.remove("show"), 1800);
+      showToast.timer = setTimeout(() => els.toast.classList.remove("show"), message.length > 18 ? 4200 : 1800);
     }
 
     function escapeHtml(value) {
@@ -2961,6 +3005,42 @@
       showToast("已刪除奶貓");
     }
 
+    async function removeCurrentBatch() {
+      const batch = currentBatch();
+      if (!batch) return;
+      const count = batchKittens(batch.id).length;
+      const message = count
+        ? `確定刪除「${batch.name}」？這會一併刪除這個梯次的 ${count} 隻奶貓和所有紀錄。`
+        : `確定刪除「${batch.name}」？`;
+      if (!confirm(message)) return;
+      try {
+        await deleteBatchFromCloud(batch);
+      } catch (error) {
+        showToast(friendlyError(error) || "雲端刪除失敗");
+        return;
+      }
+      state.kittens = state.kittens.filter(kitten => kitten.batchId !== batch.id);
+      state.batches = state.batches.filter(item => item.id !== batch.id);
+      if (!state.batches.length) {
+        state.batches.push({
+          id: crypto.randomUUID(),
+          remoteId: "",
+          name: "新梯次",
+          foundDate: new Date().toISOString().slice(0, 10),
+          foundLocation: "",
+          status: "觀察中",
+          medicalCheck: ""
+        });
+      }
+      selectedBatchId = state.batches[0].id;
+      state.selectedBatchId = selectedBatchId;
+      state.batch = state.batches[0];
+      selectedId = batchKittens(selectedBatchId)[0]?.id || "";
+      saveState();
+      render();
+      showToast("已刪除梯次");
+    }
+
     document.getElementById("openAddBtn").addEventListener("click", () => {
       if (!currentBatch()) addBatch();
       if (batchKittens().length >= 6) {
@@ -2971,6 +3051,7 @@
     });
     document.getElementById("addBatchBtn").addEventListener("click", addBatch);
     document.getElementById("addBatchInlineBtn").addEventListener("click", addBatch);
+    document.getElementById("deleteBatchBtn").addEventListener("click", removeCurrentBatch);
 
     document.getElementById("loginBtn").addEventListener("click", openLoginModal);
     document.getElementById("editKittenBtn").addEventListener("click", () => openKittenModal("edit"));
@@ -3020,6 +3101,8 @@
 
     document.getElementById("loginForm").addEventListener("submit", async event => {
       event.preventDefault();
+      const submitButton = document.getElementById("loginSubmitBtn");
+      submitButton.disabled = true;
       const config = {
         url: document.getElementById("supabaseUrl").value.trim(),
         anonKey: document.getElementById("supabaseAnonKey").value.trim(),
@@ -3033,6 +3116,7 @@
       initSupabaseClient(config);
       if (!supabaseClient) {
         showToast("Supabase SDK 尚未載入");
+        submitButton.disabled = false;
         return;
       }
       let auth = await supabaseClient.auth.signInWithPassword({ email: config.email, password });
@@ -3040,12 +3124,14 @@
         auth = await supabaseClient.auth.signUp({ email: config.email, password });
       }
       if (auth.error) {
-        showToast(auth.error.message);
+        showToast(friendlyError(auth.error));
+        submitButton.disabled = false;
         return;
       }
       cloud.user = auth.data.user;
       if (!cloud.user) {
         showToast("請先到信箱確認註冊信，再回來登入");
+        submitButton.disabled = false;
         return;
       }
       const joined = await supabaseClient.rpc("join_care_space_by_code", {
@@ -3055,6 +3141,7 @@
       if (joined.error) {
         if (!isCreatingSpace) {
           showToast("找不到這組邀請碼，請確認主要登記者已建立共用空間");
+          submitButton.disabled = false;
           return;
         }
         const created = await supabaseClient.from("care_spaces").insert({
@@ -3062,7 +3149,8 @@
           invite_code: spaceCode
         }).select("id").single();
         if (created.error) {
-          showToast(created.error.message);
+          showToast(friendlyError(created.error));
+          submitButton.disabled = false;
           return;
         }
         cloud.careSpaceId = created.data.id;
@@ -3081,9 +3169,10 @@
           showToast("已加入共用空間並載入雲端資料");
         }
       } catch (error) {
-        showToast(error.message || "雲端同步失敗");
+        showToast(friendlyError(error) || "雲端同步失敗");
       }
       closeLoginModal();
+      submitButton.disabled = false;
       render();
     });
 
@@ -3103,7 +3192,7 @@
         invite_code: inviteCode
       }).select("id").single();
       if (error) {
-        showToast(error.message);
+        showToast(friendlyError(error));
         return;
       }
       cloud.careSpaceId = data.id;
