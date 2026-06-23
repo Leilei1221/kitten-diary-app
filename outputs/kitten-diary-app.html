@@ -1884,11 +1884,12 @@
         ...kitten,
         batchId: kitten.batchId || nextState.batch.id,
         remoteId: kitten.remoteId || "",
+        photoPath: kitten.photoPath || "",
         iconIndex: Number.isInteger(kitten.iconIndex) ? kitten.iconIndex : index % CAT_ICON_PATHS.length,
         photoData: kitten.photoData || "",
-        records: kitten.records || [],
-        formulaRecords: kitten.formulaRecords || [],
-        medicalRecords: kitten.medicalRecords || []
+        records: (kitten.records || []).map(record => ({ remoteId: record.remoteId || "", ...record })),
+        formulaRecords: (kitten.formulaRecords || []).map(record => ({ remoteId: record.remoteId || "", ...record })),
+        medicalRecords: (kitten.medicalRecords || []).map(record => ({ remoteId: record.remoteId || "", ...record }))
       }));
       return nextState;
     }
@@ -1937,9 +1938,71 @@
       }[status] || "observing";
     }
 
-    async function ensureCloudBatch() {
+    function enumToSize(size) {
+      return { small: "偏小", normal: "正常", large: "偏大" }[size] || "正常";
+    }
+
+    function enumToStool(stool) {
+      return { none: "無", formed: "成形", soft: "軟便", watery: "水便" }[stool] || "其他";
+    }
+
+    function enumToBatchStatus(status) {
+      return {
+        observing: "觀察中",
+        stable: "穩定",
+        needs_warmth: "需保溫",
+        needs_vet: "需就醫",
+        ready_for_adoption: "準備送養",
+        adopted: "準備送養",
+        closed: "穩定"
+      }[status] || "觀察中";
+    }
+
+    function medicalTypeToEnum(type) {
+      return {
+        "就醫": "vet_visit",
+        "預防針": "vaccine",
+        "驅蟲": "deworming",
+        "用藥": "medication"
+      }[type] || "other";
+    }
+
+    function enumToMedicalType(type) {
+      return {
+        vet_visit: "就醫",
+        vaccine: "預防針",
+        deworming: "驅蟲",
+        medication: "用藥",
+        exam: "就醫"
+      }[type] || "其他";
+    }
+
+    async function dataUrlToBlob(dataUrl) {
+      const response = await fetch(dataUrl);
+      return response.blob();
+    }
+
+    async function uploadKittenCover(kitten) {
+      if (!cloudReady() || !kitten.remoteId || !kitten.photoData?.startsWith("data:image")) return kitten.photoPath || "";
+      const blob = await dataUrlToBlob(kitten.photoData);
+      const path = `${cloud.careSpaceId}/${kitten.remoteId}/cover.jpg`;
+      const { error } = await supabaseClient.storage.from("kitten-photos").upload(path, blob, {
+        contentType: blob.type || "image/jpeg",
+        upsert: true
+      });
+      if (error) throw error;
+      kitten.photoPath = path;
+      return path;
+    }
+
+    async function signedPhotoUrl(path) {
+      if (!path || !supabaseClient) return "";
+      const { data, error } = await supabaseClient.storage.from("kitten-photos").createSignedUrl(path, 60 * 60 * 24 * 7);
+      return error ? "" : data?.signedUrl || "";
+    }
+
+    async function ensureCloudBatch(batch = currentBatch() || state.batch) {
       if (!cloudReady()) return null;
-      const batch = currentBatch() || state.batch;
       const payload = {
         care_space_id: cloud.careSpaceId,
         name: batch.name || "未命名梯次",
@@ -1965,7 +2028,9 @@
 
     async function syncKittenToCloud(kitten) {
       if (!cloudReady()) return null;
-      const batchId = await ensureCloudBatch();
+      const batch = state.batches.find(item => item.id === kitten.batchId) || currentBatch();
+      const batchId = await ensureCloudBatch(batch);
+      const photoPath = await uploadKittenCover(kitten);
       const payload = {
         care_space_id: cloud.careSpaceId,
         batch_id: batchId,
@@ -1973,6 +2038,7 @@
         days_old: kitten.days || null,
         size: sizeToEnum(kitten.size),
         icon_index: kitten.iconIndex || 0,
+        cover_photo_path: photoPath || null,
         google_album_url: kitten.albumUrl || null,
         fixed_notes: kitten.memo || null
       };
@@ -1984,6 +2050,10 @@
       const { data, error } = await supabaseClient.from("kittens").insert(payload).select("id").single();
       if (error) throw error;
       kitten.remoteId = data.id;
+      const uploadedPath = await uploadKittenCover(kitten);
+      if (uploadedPath) {
+        await supabaseClient.from("kittens").update({ cover_photo_path: uploadedPath }).eq("id", kitten.remoteId);
+      }
       saveState();
       return data.id;
     }
@@ -1997,8 +2067,9 @@
     async function syncCareRecordToCloud(kitten, record) {
       if (!cloudReady()) return;
       const kittenId = await syncKittenToCloud(kitten);
-      const batchId = await ensureCloudBatch();
-      const { error } = await supabaseClient.from("care_logs").insert({
+      const batch = state.batches.find(item => item.id === kitten.batchId) || currentBatch();
+      const batchId = await ensureCloudBatch(batch);
+      const payload = {
         care_space_id: cloud.careSpaceId,
         kitten_id: kittenId,
         batch_id: batchId,
@@ -2010,8 +2081,15 @@
         pooped: record.poop,
         stool: stoolToEnum(record.stool),
         notes: record.note || null
-      });
+      };
+      if (record.remoteId) {
+        const { error } = await supabaseClient.from("care_logs").update(payload).eq("id", record.remoteId);
+        if (error) throw error;
+        return record.remoteId;
+      }
+      const { data, error } = await supabaseClient.from("care_logs").insert(payload).select("id").single();
       if (error) throw error;
+      record.remoteId = data.id;
       if (record.weight) {
         await supabaseClient.from("weight_logs").insert({
           care_space_id: cloud.careSpaceId,
@@ -2021,6 +2099,184 @@
           notes: record.note || null
         });
       }
+      saveState();
+      return data.id;
+    }
+
+    async function syncFormulaRecordToCloud(kitten, record) {
+      if (!cloudReady()) return;
+      const kittenId = await syncKittenToCloud(kitten);
+      const batch = state.batches.find(item => item.id === kitten.batchId) || currentBatch();
+      const batchId = await ensureCloudBatch(batch);
+      const payload = {
+        care_space_id: cloud.careSpaceId,
+        kitten_id: kittenId,
+        batch_id: batchId,
+        brand: record.brand || "未填品牌",
+        product_name: record.series || null,
+        opened_on: record.opened || null,
+        mixing_ratio: record.ratio || null,
+        is_active: Boolean(record.active),
+        notes: record.note || null
+      };
+      if (record.remoteId) {
+        const { error } = await supabaseClient.from("formula_logs").update(payload).eq("id", record.remoteId);
+        if (error) throw error;
+        return record.remoteId;
+      }
+      const { data, error } = await supabaseClient.from("formula_logs").insert(payload).select("id").single();
+      if (error) throw error;
+      record.remoteId = data.id;
+      saveState();
+      return data.id;
+    }
+
+    async function syncMedicalRecordToCloud(kitten, record) {
+      if (!cloudReady()) return;
+      const kittenId = await syncKittenToCloud(kitten);
+      const batch = state.batches.find(item => item.id === kitten.batchId) || currentBatch();
+      const batchId = await ensureCloudBatch(batch);
+      const payload = {
+        care_space_id: cloud.careSpaceId,
+        kitten_id: kittenId,
+        batch_id: batchId,
+        log_date: record.date,
+        type: medicalTypeToEnum(record.type),
+        item: record.item || null,
+        next_due_date: record.nextDue || null,
+        notes: record.note || null
+      };
+      if (record.remoteId) {
+        const { error } = await supabaseClient.from("medical_logs").update(payload).eq("id", record.remoteId);
+        if (error) throw error;
+        return record.remoteId;
+      }
+      const { data, error } = await supabaseClient.from("medical_logs").insert(payload).select("id").single();
+      if (error) throw error;
+      record.remoteId = data.id;
+      saveState();
+      return data.id;
+    }
+
+    async function deleteCloudRow(table, remoteId) {
+      if (!cloudReady() || !remoteId) return;
+      const { error } = await supabaseClient.from(table).delete().eq("id", remoteId);
+      if (error) throw error;
+    }
+
+    async function syncLocalStateToCloud() {
+      if (!cloudReady()) return;
+      for (const batch of state.batches) await ensureCloudBatch(batch);
+      for (const kitten of state.kittens) {
+        await syncKittenToCloud(kitten);
+        for (const record of kitten.records) await syncCareRecordToCloud(kitten, record);
+        for (const record of kitten.formulaRecords) await syncFormulaRecordToCloud(kitten, record);
+        for (const record of kitten.medicalRecords) await syncMedicalRecordToCloud(kitten, record);
+      }
+      saveState();
+    }
+
+    async function loadCloudState() {
+      if (!cloudReady()) return;
+      const [batchResult, kittenResult, careResult, formulaResult, medicalResult] = await Promise.all([
+        supabaseClient.from("care_batches").select("*").eq("care_space_id", cloud.careSpaceId).order("found_date", { ascending: true }),
+        supabaseClient.from("kittens").select("*").eq("care_space_id", cloud.careSpaceId).order("created_at", { ascending: true }),
+        supabaseClient.from("care_logs").select("*").eq("care_space_id", cloud.careSpaceId).order("recorded_at", { ascending: true }),
+        supabaseClient.from("formula_logs").select("*").eq("care_space_id", cloud.careSpaceId).order("created_at", { ascending: true }),
+        supabaseClient.from("medical_logs").select("*").eq("care_space_id", cloud.careSpaceId).order("log_date", { ascending: true })
+      ]);
+      const firstError = [batchResult, kittenResult, careResult, formulaResult, medicalResult].find(result => result.error)?.error;
+      if (firstError) throw firstError;
+
+      const batches = (batchResult.data || []).map((batch, index) => ({
+        id: batch.id,
+        remoteId: batch.id,
+        name: batch.name || `未命名梯次 ${index + 1}`,
+        foundDate: batch.found_date || "",
+        foundLocation: batch.found_location || "",
+        status: enumToBatchStatus(batch.status),
+        medicalCheck: batch.initial_medical_check || ""
+      }));
+      const fallbackBatch = batches[0] || {
+        id: crypto.randomUUID(),
+        remoteId: "",
+        name: "新梯次",
+        foundDate: "",
+        foundLocation: "",
+        status: "觀察中",
+        medicalCheck: ""
+      };
+
+      const kittens = await Promise.all((kittenResult.data || []).map(async (kitten, index) => ({
+        id: crypto.randomUUID(),
+        remoteId: kitten.id,
+        batchId: kitten.batch_id || fallbackBatch.id,
+        name: kitten.name || `奶貓 ${index + 1}`,
+        days: kitten.days_old || 0,
+        size: enumToSize(kitten.size),
+        color: colors[index % colors.length],
+        iconIndex: Number.isInteger(kitten.icon_index) ? kitten.icon_index : index % CAT_ICON_PATHS.length,
+        photoPath: kitten.cover_photo_path || "",
+        photoData: kitten.cover_photo_path ? await signedPhotoUrl(kitten.cover_photo_path) : "",
+        albumUrl: kitten.google_album_url || "",
+        memo: kitten.fixed_notes || "",
+        records: [],
+        formulaRecords: [],
+        medicalRecords: []
+      })));
+
+      const kittenByRemoteId = new Map(kittens.map(kitten => [kitten.remoteId, kitten]));
+      (careResult.data || []).forEach(record => {
+        const kitten = kittenByRemoteId.get(record.kitten_id);
+        if (!kitten) return;
+        kitten.records.push({
+          id: crypto.randomUUID(),
+          remoteId: record.id,
+          time: record.recorded_at,
+          caretaker: record.caregiver_name || "",
+          milk: Number(record.milk_amount_ml || 0),
+          weight: Number(record.weight_g || 0),
+          pee: Boolean(record.peed),
+          poop: Boolean(record.pooped),
+          stool: enumToStool(record.stool),
+          note: record.notes || ""
+        });
+      });
+      (formulaResult.data || []).forEach(record => {
+        const kitten = kittenByRemoteId.get(record.kitten_id);
+        if (!kitten) return;
+        kitten.formulaRecords.push({
+          id: crypto.randomUUID(),
+          remoteId: record.id,
+          brand: record.brand || "",
+          series: record.product_name || "",
+          opened: record.opened_on || "",
+          ratio: record.mixing_ratio || "",
+          active: Boolean(record.is_active),
+          note: record.notes || ""
+        });
+      });
+      (medicalResult.data || []).forEach(record => {
+        const kitten = kittenByRemoteId.get(record.kitten_id);
+        if (!kitten) return;
+        kitten.medicalRecords.push({
+          id: crypto.randomUUID(),
+          remoteId: record.id,
+          date: record.log_date || "",
+          type: enumToMedicalType(record.type),
+          item: record.item || "",
+          nextDue: record.next_due_date || "",
+          note: record.notes || ""
+        });
+      });
+
+      state.batches = batches.length ? batches : [fallbackBatch];
+      state.selectedBatchId = state.batches[0]?.id || "";
+      state.batch = state.batches[0] || fallbackBatch;
+      state.kittens = kittens;
+      selectedBatchId = state.selectedBatchId;
+      selectedId = batchKittens(selectedBatchId)[0]?.id || "";
+      saveState();
     }
 
     function currentKitten() {
@@ -2634,9 +2890,9 @@
       document.getElementById("supabaseUrl").value = config.url || "";
       document.getElementById("supabaseAnonKey").value = config.anonKey || "";
       document.getElementById("authEmail").value = config.email || "";
-      document.getElementById("spaceCode").value = invitedCode || state.session?.spaceCode || "";
+      document.getElementById("spaceCode").value = invitedCode || config.spaceCode || state.session?.spaceCode || "";
       document.getElementById("spaceMode").value = "join";
-      document.getElementById("caregiverName").value = state.session?.caregiverName || "";
+      document.getElementById("caregiverName").value = config.caregiverName || state.session?.caregiverName || "";
       document.getElementById("logoutBtn").style.display = cloud.user ? "inline-flex" : "none";
       updateInvitePreview();
       els.loginModal.classList.add("show");
@@ -2814,11 +3070,16 @@
         cloud.careSpaceId = joined.data;
       }
       state.session = { spaceCode, caregiverName };
+      saveCloudConfig({ ...config, careSpaceId: cloud.careSpaceId, spaceCode, caregiverName });
       document.getElementById("caretaker").value = caregiverName;
       try {
-        await ensureCloudBatch();
-        for (const kitten of state.kittens) await syncKittenToCloud(kitten);
-        showToast("已連上 Supabase 並同步基本資料");
+        if (isCreatingSpace) {
+          await syncLocalStateToCloud();
+          showToast("已建立共用空間並上傳目前資料");
+        } else {
+          await loadCloudState();
+          showToast("已加入共用空間並載入雲端資料");
+        }
       } catch (error) {
         showToast(error.message || "雲端同步失敗");
       }
@@ -2855,6 +3116,7 @@
       if (supabaseClient) await supabaseClient.auth.signOut();
       cloud = { user: null, careSpaceId: "", batchId: "" };
       state.session = { spaceCode: "", caregiverName: "" };
+      saveCloudConfig({ ...loadCloudConfig(), careSpaceId: "", spaceCode: "", caregiverName: "" });
       document.getElementById("caretaker").value = "";
       closeLoginModal();
       render();
@@ -2996,23 +3258,29 @@
         note: document.getElementById("note").value.trim()
       };
       let toastMessage = "照護紀錄已儲存於本機";
+      let recordToSync = record;
       if (editingId) {
         const index = kitten.records.findIndex(item => item.id === editingId);
-        if (index >= 0) kitten.records[index] = record;
+        if (index >= 0) {
+          record.remoteId = kitten.records[index].remoteId || "";
+          kitten.records[index] = record;
+          recordToSync = kitten.records[index];
+        }
         toastMessage = "照護紀錄已更新";
       } else {
         const recent = latestRecord(kitten);
         const shouldMerge = recent && document.getElementById("mergeRecent").checked && Math.abs(new Date(record.time) - new Date(recent.time)) <= 30 * 60 * 1000;
         if (shouldMerge) {
           mergeRecordValues(recent, record);
+          recordToSync = recent;
           toastMessage = "已併入 30 分鐘內同一次餵食";
         } else {
           kitten.records.push(record);
         }
       }
-      if (cloudReady() && !editingId) {
+      if (cloudReady()) {
         try {
-          await syncCareRecordToCloud(kitten, record);
+          await syncCareRecordToCloud(kitten, recordToSync);
           showToast("照護紀錄已同步到雲端");
         } catch (error) {
           showToast(error.message || "雲端同步失敗");
@@ -3020,16 +3288,16 @@
       }
       resetCareForm();
       render();
-      if (!cloudReady() || editingId) showToast(toastMessage);
+      if (!cloudReady()) showToast(toastMessage);
     });
 
-    document.getElementById("formulaForm").addEventListener("submit", event => {
+    document.getElementById("formulaForm").addEventListener("submit", async event => {
       event.preventDefault();
       const kitten = currentKitten();
       if (!kitten) return;
       const active = document.getElementById("formulaActive").checked;
       if (active) kitten.formulaRecords.forEach(record => record.active = false);
-      kitten.formulaRecords.push({
+      const record = {
         id: crypto.randomUUID(),
         brand: document.getElementById("formulaBrand").value.trim(),
         series: document.getElementById("formulaSeries").value.trim(),
@@ -3037,7 +3305,16 @@
         ratio: document.getElementById("formulaRatio").value.trim(),
         active,
         note: document.getElementById("formulaNote").value.trim()
-      });
+      };
+      kitten.formulaRecords.push(record);
+      if (cloudReady()) {
+        try {
+          await syncFormulaRecordToCloud(kitten, record);
+          showToast("奶粉資料已同步到雲端");
+        } catch (error) {
+          showToast(error.message || "雲端同步失敗");
+        }
+      }
       document.getElementById("formulaBrand").value = "";
       document.getElementById("formulaSeries").value = "";
       document.getElementById("formulaRatio").value = "";
@@ -3045,51 +3322,78 @@
       document.getElementById("formulaActive").checked = true;
       setDateTimeNow();
       render();
-      showToast("奶粉資料已儲存");
+      if (!cloudReady()) showToast("奶粉資料已儲存");
     });
 
-    document.getElementById("medicalForm").addEventListener("submit", event => {
+    document.getElementById("medicalForm").addEventListener("submit", async event => {
       event.preventDefault();
       const kitten = currentKitten();
       if (!kitten) return;
-      kitten.medicalRecords.push({
+      const record = {
         id: crypto.randomUUID(),
         date: document.getElementById("medicalDate").value,
         type: document.getElementById("medicalType").value,
         item: document.getElementById("medicalItem").value.trim(),
         nextDue: document.getElementById("nextDue").value,
         note: document.getElementById("medicalNote").value.trim()
-      });
+      };
+      kitten.medicalRecords.push(record);
+      if (cloudReady()) {
+        try {
+          await syncMedicalRecordToCloud(kitten, record);
+          showToast("醫療紀錄已同步到雲端");
+        } catch (error) {
+          showToast(error.message || "雲端同步失敗");
+        }
+      }
       document.getElementById("medicalItem").value = "";
       document.getElementById("nextDue").value = "";
       document.getElementById("medicalNote").value = "";
       setDateTimeNow();
       render();
-      showToast("醫療紀錄已儲存");
+      if (!cloudReady()) showToast("醫療紀錄已儲存");
     });
 
-    document.getElementById("deleteRecordBtn").addEventListener("click", () => {
+    document.getElementById("deleteRecordBtn").addEventListener("click", async () => {
       const kitten = currentKitten();
       if (!kitten || !kitten.records.length) return;
       const latest = latestRecord(kitten);
+      try {
+        await deleteCloudRow("care_logs", latest.remoteId);
+      } catch (error) {
+        showToast(error.message || "雲端刪除失敗");
+        return;
+      }
       kitten.records = kitten.records.filter(record => record.id !== latest.id);
       render();
       showToast("已刪除最近一筆紀錄");
     });
 
-    document.getElementById("deleteFormulaBtn").addEventListener("click", () => {
+    document.getElementById("deleteFormulaBtn").addEventListener("click", async () => {
       const kitten = currentKitten();
       if (!kitten || !kitten.formulaRecords.length) return;
       const latest = kitten.formulaRecords[kitten.formulaRecords.length - 1];
+      try {
+        await deleteCloudRow("formula_logs", latest.remoteId);
+      } catch (error) {
+        showToast(error.message || "雲端刪除失敗");
+        return;
+      }
       kitten.formulaRecords = kitten.formulaRecords.filter(record => record.id !== latest.id);
       render();
       showToast("已刪除最近一筆奶粉資料");
     });
 
-    document.getElementById("deleteMedicalBtn").addEventListener("click", () => {
+    document.getElementById("deleteMedicalBtn").addEventListener("click", async () => {
       const kitten = currentKitten();
       if (!kitten || !kitten.medicalRecords.length) return;
       const latest = latestMedical(kitten);
+      try {
+        await deleteCloudRow("medical_logs", latest.remoteId);
+      } catch (error) {
+        showToast(error.message || "雲端刪除失敗");
+        return;
+      }
       kitten.medicalRecords = kitten.medicalRecords.filter(record => record.id !== latest.id);
       render();
       showToast("已刪除最近一筆醫療紀錄");
@@ -3102,10 +3406,23 @@
 
     async function boot() {
       setDateTimeNow();
-      const client = initSupabaseClient();
+      const config = loadCloudConfig();
+      const client = initSupabaseClient(config);
       if (client) {
         const { data } = await client.auth.getUser();
         cloud.user = data.user || null;
+        if (cloud.user && config.careSpaceId) {
+          cloud.careSpaceId = config.careSpaceId;
+          state.session = {
+            spaceCode: config.spaceCode || state.session?.spaceCode || "",
+            caregiverName: config.caregiverName || state.session?.caregiverName || ""
+          };
+          try {
+            await loadCloudState();
+          } catch (error) {
+            showToast(error.message || "雲端資料載入失敗");
+          }
+        }
       }
       render();
       if (inviteCodeFromUrl()) {
