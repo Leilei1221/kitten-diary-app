@@ -645,6 +645,72 @@
       background: var(--surface);
     }
 
+    .simple-invite {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 112px;
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #f7faf9;
+      align-items: center;
+    }
+
+    .invite-code {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--brand-dark);
+      letter-spacing: .04em;
+      word-break: break-word;
+    }
+
+    .invite-link {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      word-break: break-all;
+    }
+
+    .invite-qr {
+      width: 112px;
+      height: 112px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      padding: 6px;
+    }
+
+    .invite-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .advanced-settings {
+      grid-column: 1 / -1;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfd;
+      overflow: hidden;
+    }
+
+    .advanced-settings summary {
+      min-height: 44px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .advanced-settings .form-grid {
+      padding: 12px;
+      border-top: 1px solid var(--line);
+      background: white;
+    }
+
     .event-head {
       display: flex;
       justify-content: space-between;
@@ -1112,6 +1178,16 @@
       .event-actions {
         display: grid;
         grid-template-columns: 1fr 1fr;
+      }
+
+      .simple-invite {
+        grid-template-columns: 1fr;
+      }
+
+      .invite-qr {
+        width: 148px;
+        height: 148px;
+        justify-self: center;
       }
 
       .weight-strip {
@@ -1610,16 +1686,8 @@
 
   <div class="modal-backdrop" id="loginModal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
-      <h2 id="loginTitle">共用登入</h2>
+      <h2 id="loginTitle">共用照護空間</h2>
       <form id="loginForm" class="form-grid">
-        <div class="field full">
-          <label for="supabaseUrl">Supabase URL</label>
-          <input id="supabaseUrl" type="url" placeholder="https://xxxx.supabase.co" required>
-        </div>
-        <div class="field full">
-          <label for="supabaseAnonKey">Supabase anon key</label>
-          <input id="supabaseAnonKey" placeholder="貼上 anon public key" required>
-        </div>
         <div class="field">
           <label for="authEmail">Email</label>
           <input id="authEmail" type="email" placeholder="you@example.com" required>
@@ -1637,12 +1705,38 @@
           <input id="caregiverName" maxlength="18" placeholder="例如：早班、阿雷" required>
         </div>
         <div class="field full">
-          <label for="loginNote">共用說明</label>
-          <textarea id="loginNote" readonly>填入 Supabase URL 與 anon key 後，可用 Email 註冊/登入。照護空間代碼可用來加入同一個共用空間；建立新空間會產生新的邀請碼。</textarea>
+          <label for="loginNote">加入方式</label>
+          <textarea id="loginNote" readonly>主要登記者按「產生邀請碼」，把代碼、連結或 QR Code 傳給共同照護者。共同照護者註冊/登入後，只要貼上同一組代碼就會加入同一個照護空間。</textarea>
         </div>
+        <div class="simple-invite">
+          <div>
+            <label>目前邀請碼</label>
+            <div class="invite-code" id="inviteCodeText">尚未產生</div>
+            <div class="invite-link" id="inviteLinkText">產生邀請碼後會出現加入連結</div>
+            <div class="invite-actions">
+              <button class="ghost-btn" id="copyInviteBtn" type="button">複製邀請</button>
+              <button class="ghost-btn" id="shareInviteBtn" type="button">分享</button>
+            </div>
+          </div>
+          <img class="invite-qr" id="inviteQr" src="" alt="邀請加入 QR Code">
+        </div>
+        <details class="advanced-settings">
+          <summary>進階設定</summary>
+          <div class="form-grid">
+            <div class="field full">
+              <label for="supabaseUrl">Supabase URL</label>
+              <input id="supabaseUrl" type="url" placeholder="https://xxxx.supabase.co" required>
+            </div>
+            <div class="field full">
+              <label for="supabaseAnonKey">Supabase anon key</label>
+              <input id="supabaseAnonKey" placeholder="貼上 anon public key" required>
+            </div>
+          </div>
+        </details>
+        <input id="spaceMode" type="hidden" value="join">
         <div class="modal-actions field full">
           <button class="ghost-btn" id="closeLoginBtn" type="button">取消</button>
-          <button class="ghost-btn" id="createSpaceBtn" type="button">建立新空間</button>
+          <button class="ghost-btn" id="createSpaceBtn" type="button">產生邀請碼</button>
           <button class="danger-btn" id="logoutBtn" type="button">登出</button>
           <button class="primary-btn" type="submit">進入共用空間</button>
         </div>
@@ -1700,6 +1794,9 @@
       formulaList: document.getElementById("formulaList"),
       handoffBox: document.getElementById("handoffBox"),
       loginLabel: document.getElementById("loginLabel"),
+      inviteCodeText: document.getElementById("inviteCodeText"),
+      inviteLinkText: document.getElementById("inviteLinkText"),
+      inviteQr: document.getElementById("inviteQr"),
       albumOpen: document.getElementById("albumOpen"),
       albumText: document.getElementById("albumText"),
       modal: document.getElementById("kittenModal"),
@@ -2490,16 +2587,60 @@
       els.modal.classList.remove("show");
     }
 
+    function inviteCodeFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return (params.get("join") || "").trim().toUpperCase();
+    }
+
+    function inviteLinkFor(code) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("join", code);
+      return url.toString();
+    }
+
+    function updateInvitePreview(code = document.getElementById("spaceCode").value.trim()) {
+      const normalized = code.toUpperCase();
+      if (normalized && document.getElementById("spaceCode").value !== normalized) {
+        document.getElementById("spaceCode").value = normalized;
+      }
+      if (!normalized) {
+        els.inviteCodeText.textContent = "尚未產生";
+        els.inviteLinkText.textContent = "產生邀請碼後會出現加入連結";
+        els.inviteQr.removeAttribute("src");
+        return;
+      }
+      const link = inviteLinkFor(normalized);
+      els.inviteCodeText.textContent = normalized;
+      els.inviteLinkText.textContent = link;
+      els.inviteQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(link)}`;
+    }
+
+    async function copyText(text) {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const area = document.createElement("textarea");
+      area.value = text;
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+    }
+
     function openLoginModal() {
       const config = loadCloudConfig();
+      const invitedCode = inviteCodeFromUrl();
       document.getElementById("supabaseUrl").value = config.url || "";
       document.getElementById("supabaseAnonKey").value = config.anonKey || "";
       document.getElementById("authEmail").value = config.email || "";
-      document.getElementById("spaceCode").value = state.session?.spaceCode || "";
+      document.getElementById("spaceCode").value = invitedCode || state.session?.spaceCode || "";
+      document.getElementById("spaceMode").value = "join";
       document.getElementById("caregiverName").value = state.session?.caregiverName || "";
       document.getElementById("logoutBtn").style.display = cloud.user ? "inline-flex" : "none";
+      updateInvitePreview();
       els.loginModal.classList.add("show");
-      setTimeout(() => document.getElementById(config.url ? "authEmail" : "supabaseUrl").focus(), 0);
+      setTimeout(() => document.getElementById("authEmail").focus(), 0);
     }
 
     function closeLoginModal() {
@@ -2589,6 +2730,37 @@
     els.loginModal.addEventListener("click", event => {
       if (event.target === els.loginModal) closeLoginModal();
     });
+    document.getElementById("spaceCode").addEventListener("input", event => {
+      document.getElementById("spaceMode").value = "join";
+      updateInvitePreview(event.target.value);
+    });
+    document.getElementById("copyInviteBtn").addEventListener("click", async () => {
+      const code = document.getElementById("spaceCode").value.trim().toUpperCase();
+      if (!code) {
+        showToast("請先產生或輸入邀請碼");
+        return;
+      }
+      await copyText(`奶貓日記共用照護邀請\n邀請碼：${code}\n加入連結：${inviteLinkFor(code)}`);
+      showToast("邀請內容已複製");
+    });
+    document.getElementById("shareInviteBtn").addEventListener("click", async () => {
+      const code = document.getElementById("spaceCode").value.trim().toUpperCase();
+      if (!code) {
+        showToast("請先產生或輸入邀請碼");
+        return;
+      }
+      const shareData = {
+        title: "奶貓日記共用照護",
+        text: `邀請碼：${code}`,
+        url: inviteLinkFor(code)
+      };
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await copyText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+        showToast("裝置不支援分享，已改為複製");
+      }
+    });
 
     document.getElementById("loginForm").addEventListener("submit", async event => {
       event.preventDefault();
@@ -2598,8 +2770,9 @@
         email: document.getElementById("authEmail").value.trim()
       };
       const password = document.getElementById("authPassword").value;
-      const spaceCode = document.getElementById("spaceCode").value.trim();
+      const spaceCode = document.getElementById("spaceCode").value.trim().toUpperCase();
       const caregiverName = document.getElementById("caregiverName").value.trim();
+      const isCreatingSpace = document.getElementById("spaceMode").value === "create";
       saveCloudConfig(config);
       initSupabaseClient(config);
       if (!supabaseClient) {
@@ -2624,6 +2797,10 @@
         member_display_name: caregiverName
       });
       if (joined.error) {
+        if (!isCreatingSpace) {
+          showToast("找不到這組邀請碼，請確認主要登記者已建立共用空間");
+          return;
+        }
         const created = await supabaseClient.from("care_spaces").insert({
           name: state.batch?.name || "奶貓照護空間",
           invite_code: spaceCode
@@ -2653,8 +2830,10 @@
       const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
       const inviteCode = `KITTEN-${suffix}`;
       document.getElementById("spaceCode").value = inviteCode;
+      document.getElementById("spaceMode").value = "create";
+      updateInvitePreview(inviteCode);
       if (!supabaseClient || !cloud.user) {
-        showToast("已產生代碼，按進入共用空間後會建立");
+        showToast("已產生邀請碼，按進入共用空間完成建立");
         document.getElementById("caregiverName").focus();
         return;
       }
@@ -2669,7 +2848,7 @@
       cloud.careSpaceId = data.id;
       state.session.spaceCode = inviteCode;
       saveState();
-      showToast("已建立雲端照護空間");
+      showToast("已建立雲端照護空間，可分享邀請碼");
     });
 
     document.getElementById("logoutBtn").addEventListener("click", async () => {
@@ -2929,6 +3108,10 @@
         cloud.user = data.user || null;
       }
       render();
+      if (inviteCodeFromUrl()) {
+        openLoginModal();
+        showToast("已帶入邀請碼，登入後即可加入");
+      }
     }
 
     boot();
