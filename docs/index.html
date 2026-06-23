@@ -1717,8 +1717,11 @@
           <input id="caregiverName" maxlength="18" placeholder="例如：早班、阿雷" required>
         </div>
         <div class="field full">
+          <label class="check"><input id="signupMode" type="checkbox"> 我是第一次使用，要先註冊這個 Email</label>
+        </div>
+        <div class="field full">
           <label for="loginNote">加入方式</label>
-          <textarea id="loginNote" readonly>主要登記者按「產生邀請碼」，把代碼、連結或 QR Code 傳給共同照護者。共同照護者註冊/登入後，只要貼上同一組代碼就會加入同一個照護空間。</textarea>
+          <textarea id="loginNote" readonly>已註冊者直接按「進入共用空間」。第一次使用請勾選註冊，再按「進入共用空間」。主要登記者按「產生邀請碼」，把代碼、連結或 QR Code 傳給共同照護者。</textarea>
         </div>
         <div class="simple-invite">
           <div>
@@ -2922,7 +2925,10 @@
       document.getElementById("logoutBtn").style.display = cloud.user ? "inline-flex" : "none";
       updateInvitePreview();
       els.loginModal.classList.add("show");
-      setTimeout(() => document.getElementById("authEmail").focus(), 0);
+      setTimeout(() => {
+        document.getElementById("authEmail").scrollIntoView({ block: "center" });
+        document.getElementById("authEmail").focus();
+      }, 0);
     }
 
     function closeLoginModal() {
@@ -2935,8 +2941,11 @@
       if (message.includes("security purposes") && cooldown) {
         return `安全限制：剛剛送出太多次，請等 ${cooldown[1]} 秒後再試。`;
       }
+      if (message.toLowerCase().includes("email rate limit")) {
+        return "Email 驗證信送出太多次，請等幾分鐘後再註冊或改用已註冊帳號登入。";
+      }
       if (message.includes("Invalid login credentials")) {
-        return "Email 或密碼不正確，請確認是否已註冊或密碼是否輸入正確。";
+        return "Email 或密碼不正確；如果是第一次使用，請先勾選註冊。";
       }
       if (message.includes("Email not confirmed")) {
         return "請先到信箱完成確認信，再回來登入。";
@@ -3112,6 +3121,7 @@
       const spaceCode = document.getElementById("spaceCode").value.trim().toUpperCase();
       const caregiverName = document.getElementById("caregiverName").value.trim();
       const isCreatingSpace = document.getElementById("spaceMode").value === "create";
+      const isSignup = document.getElementById("signupMode").checked;
       saveCloudConfig(config);
       initSupabaseClient(config);
       if (!supabaseClient) {
@@ -3119,10 +3129,9 @@
         submitButton.disabled = false;
         return;
       }
-      let auth = await supabaseClient.auth.signInWithPassword({ email: config.email, password });
-      if (auth.error) {
-        auth = await supabaseClient.auth.signUp({ email: config.email, password });
-      }
+      const auth = isSignup
+        ? await supabaseClient.auth.signUp({ email: config.email, password })
+        : await supabaseClient.auth.signInWithPassword({ email: config.email, password });
       if (auth.error) {
         showToast(friendlyError(auth.error));
         submitButton.disabled = false;
