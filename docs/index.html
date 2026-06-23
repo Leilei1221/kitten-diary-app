@@ -183,6 +183,50 @@
       font-size: 13px;
     }
 
+    .batch-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+    }
+
+    .batch-card {
+      min-height: 92px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--ink);
+      padding: 12px;
+      text-align: left;
+      display: grid;
+      gap: 8px;
+    }
+
+    .batch-card.active {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 2px rgba(38, 115, 109, .12);
+    }
+
+    .batch-card strong {
+      font-size: 16px;
+    }
+
+    .batch-card span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .batch-actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .mobile-kitten-picker {
+      display: none;
+    }
+
     .kitten-list {
       display: grid;
       gap: 8px;
@@ -196,11 +240,32 @@
       background: var(--surface);
       color: var(--ink);
       padding: 10px;
+      padding-right: 46px;
       text-align: left;
       display: grid;
       grid-template-columns: 42px minmax(0, 1fr);
       gap: 10px;
       align-items: center;
+    }
+
+    .kitten-tab-wrap {
+      position: relative;
+    }
+
+    .kitten-delete {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      width: 32px;
+      height: 32px;
+      min-height: 32px;
+      padding: 0;
+      border-radius: 8px;
+      background: #fff7f6;
+      color: var(--danger);
+      border: 1px solid #f3c4bd;
+      display: grid;
+      place-items: center;
     }
 
     .kitten-tab.active {
@@ -545,6 +610,41 @@
       background: #fbfcfd;
     }
 
+    .event-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .event-actions button {
+      min-height: 36px;
+      padding: 0 10px;
+    }
+
+    .formula-editor {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+      margin-bottom: 12px;
+      overflow: hidden;
+      background: #fbfcfd;
+    }
+
+    .formula-editor summary {
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .formula-editor .form-grid {
+      padding: 12px;
+      border-top: 1px solid var(--line);
+      background: var(--surface);
+    }
+
     .event-head {
       display: flex;
       justify-content: space-between;
@@ -875,11 +975,11 @@
       }
 
       .sidebar {
-        position: sticky;
-        top: 58px;
-        z-index: 4;
-        background: rgba(248, 250, 251, .96);
-        backdrop-filter: blur(10px);
+        display: none;
+      }
+
+      .mobile-kitten-picker {
+        display: block;
       }
 
       .sidebar-head {
@@ -887,17 +987,30 @@
       }
 
       .kitten-list {
-        display: flex;
+        display: grid;
         gap: 8px;
+      }
+
+      .kitten-tab {
+        min-height: 72px;
+        padding-right: 46px;
+      }
+
+      .batch-strip {
+        display: flex;
         overflow-x: auto;
+        gap: 8px;
         padding-bottom: 4px;
         scroll-snap-type: x proximity;
       }
 
-      .kitten-tab {
-        min-width: 176px;
-        min-height: 68px;
+      .batch-card {
+        min-width: 238px;
         scroll-snap-align: start;
+      }
+
+      .batch-actions {
+        grid-template-columns: 1fr;
       }
 
       .workspace {
@@ -965,6 +1078,7 @@
       .section-title {
         align-items: flex-start;
         gap: 8px;
+        flex-wrap: wrap;
       }
 
       .section-title .ghost-btn,
@@ -993,6 +1107,11 @@
       .timeline,
       .medical-list {
         max-height: none;
+      }
+
+      .event-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
       }
 
       .weight-strip {
@@ -1072,6 +1191,10 @@
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg>
           <span id="loginLabel">共用登入</span>
         </button>
+        <button class="ghost-btn" id="addBatchBtn" type="button" title="新增梯次">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4z"/><path d="M8 7V4h8v3"/><path d="M12 11v6M9 14h6"/></svg>
+          <span>新增梯次</span>
+        </button>
         <button class="primary-btn" id="openAddBtn" type="button">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
           新增奶貓
@@ -1081,7 +1204,7 @@
 
     <aside class="sidebar">
       <div class="sidebar-head">
-        <h2 class="title-with-icon"><svg class="title-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10c-1.2 0-2-1-2-2.4S5.8 5 7 5s2 1.1 2 2.6S8.2 10 7 10Z"/><path d="M17 10c-1.2 0-2-1-2-2.4S15.8 5 17 5s2 1.1 2 2.6S18.2 10 17 10Z"/><path d="M10 8c-1.1 0-1.8-1-1.8-2.2S8.9 3.5 10 3.5s1.8 1 1.8 2.3S11.1 8 10 8Z"/><path d="M14 8c-1.1 0-1.8-1-1.8-2.2s.7-2.3 1.8-2.3 1.8 1 1.8 2.3S15.1 8 14 8Z"/><path d="M12 11c3.8 0 6 2.6 6 5.3 0 1.8-1.3 3.2-3.1 3.2-1.1 0-1.8-.5-2.9-.5s-1.8.5-2.9.5C7.3 19.5 6 18.1 6 16.3 6 13.6 8.2 11 12 11Z"/></svg>奶貓列表</h2>
+        <h2 class="title-with-icon"><svg class="title-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10c-1.2 0-2-1-2-2.4S5.8 5 7 5s2 1.1 2 2.6S8.2 10 7 10Z"/><path d="M17 10c-1.2 0-2-1-2-2.4S15.8 5 17 5s2 1.1 2 2.6S18.2 10 17 10Z"/><path d="M10 8c-1.1 0-1.8-1-1.8-2.2S8.9 3.5 10 3.5s1.8 1 1.8 2.3S11.1 8 10 8Z"/><path d="M14 8c-1.1 0-1.8-1-1.8-2.2s.7-2.3 1.8-2.3 1.8 1 1.8 2.3S15.1 8 14 8Z"/><path d="M12 11c3.8 0 6 2.6 6 5.3 0 1.8-1.3 3.2-3.1 3.2-1.1 0-1.8-.5-2.9-.5s-1.8.5-2.9.5C7.3 19.5 6 18.1 6 16.3 6 13.6 8.2 11 12 11Z"/></svg>本梯奶貓</h2>
         <span class="count" id="kittenCount">0 / 6</span>
       </div>
       <div class="kitten-list" id="kittenList"></div>
@@ -1089,6 +1212,28 @@
 
     <main class="main">
       <div class="workspace">
+        <section class="panel" aria-label="梯次選擇">
+          <div class="section-title">
+            <h2 class="title-with-icon"><svg class="title-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4z"/><path d="M8 7V4h8v3"/><path d="M8 12h8M8 16h5"/></svg>先選梯次</h2>
+            <span class="count" id="activeBatchLabel">目前梯次</span>
+          </div>
+          <div class="batch-actions">
+            <div class="batch-strip" id="batchList"></div>
+            <button class="ghost-btn" id="addBatchInlineBtn" type="button">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              新增梯次
+            </button>
+          </div>
+        </section>
+
+        <section class="panel mobile-kitten-picker" aria-label="目前梯次奶貓">
+          <div class="section-title">
+            <h2 class="title-with-icon"><svg class="title-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10c-1.2 0-2-1-2-2.4S5.8 5 7 5s2 1.1 2 2.6S8.2 10 7 10Z"/><path d="M17 10c-1.2 0-2-1-2-2.4S15.8 5 17 5s2 1.1 2 2.6S18.2 10 17 10Z"/><path d="M12 11c3.8 0 6 2.6 6 5.3 0 1.8-1.3 3.2-3.1 3.2-1.1 0-1.8-.5-2.9-.5s-1.8.5-2.9.5C7.3 19.5 6 18.1 6 16.3 6 13.6 8.2 11 12 11Z"/></svg>本梯奶貓</h2>
+            <span class="count" id="mobileKittenCount">0 / 6</span>
+          </div>
+          <div class="kitten-list" id="mobileKittenList"></div>
+        </section>
+
         <section class="hero" aria-label="今日照護重點">
           <div class="hero-copy">
             <h2 id="heroTitle">今天先把每一餐穩穩記好</h2>
@@ -1181,6 +1326,7 @@
               </button>
             </div>
             <form id="careForm" class="form-grid">
+              <input id="careEditId" type="hidden">
               <div class="field">
                 <label for="careTime">時間</label>
                 <input id="careTime" name="careTime" type="datetime-local" required>
@@ -1218,7 +1364,10 @@
                 <textarea id="note" name="note" placeholder="例如：吸吮力、精神、保溫、吐奶、便色"></textarea>
               </div>
               <div class="field full">
-                <button class="primary-btn" type="submit">
+                <label class="check"><input id="mergeRecent" type="checkbox" checked> 30 分鐘內已有紀錄時，併入同一次餵食</label>
+              </div>
+              <div class="field full">
+                <button class="primary-btn" id="careSubmitBtn" type="submit">
                   <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
                   儲存本次紀錄
                 </button>
@@ -1247,7 +1396,9 @@
                 刪最近一筆
               </button>
             </div>
-            <form id="formulaForm" class="form-grid">
+            <details class="formula-editor" id="formulaEditor">
+              <summary>登記 / 更換奶粉</summary>
+              <form id="formulaForm" class="form-grid">
               <div class="field">
                 <label for="formulaBrand">品牌</label>
                 <input id="formulaBrand" list="formulaBrandOptions" placeholder="選皇家、貝克、森乳、信元，或自行輸入">
@@ -1287,7 +1438,8 @@
                   儲存奶粉資料
                 </button>
               </div>
-            </form>
+              </form>
+            </details>
             <div class="medical-list" id="formulaList"></div>
           </div>
 
@@ -1511,8 +1663,10 @@
     const CAT_ICON_PATHS = Array.from({ length: 12 }, (_, index) => `assets/cat-icon-${String(index + 1).padStart(2, "0")}.png`);
     const colors = ["sky", "pink", "yellow", "mint", "gray", "peach"];
     let selectedStool = "無";
+    let selectedBatchId = "";
     let selectedId = "";
     let state = loadState();
+    selectedBatchId = state.selectedBatchId || state.batch?.id || state.batches?.[0]?.id || "";
     let supabaseClient = null;
     let cloud = {
       user: null,
@@ -1523,6 +1677,10 @@
     const els = {
       kittenList: document.getElementById("kittenList"),
       kittenCount: document.getElementById("kittenCount"),
+      mobileKittenList: document.getElementById("mobileKittenList"),
+      mobileKittenCount: document.getElementById("mobileKittenCount"),
+      batchList: document.getElementById("batchList"),
+      activeBatchLabel: document.getElementById("activeBatchLabel"),
       batchSummary: document.getElementById("batchSummary"),
       quickKittenSelect: document.getElementById("quickKittenSelect"),
       heroTitle: document.getElementById("heroTitle"),
@@ -1561,6 +1719,7 @@
           caregiverName: "早班"
         },
         batch: {
+          id: crypto.randomUUID(),
           name: "花蓮 0621 梯",
           foundDate: new Date().toISOString().slice(0, 10),
           foundLocation: "校園周邊",
@@ -1607,9 +1766,26 @@
     function normalizeState(nextState) {
       nextState.session = nextState.session || { spaceCode: "", caregiverName: "" };
       nextState.batch = nextState.batch || { name: "", foundDate: "", foundLocation: "", status: "觀察中", medicalCheck: "" };
+      nextState.batch.id = nextState.batch.id || crypto.randomUUID();
       nextState.batch.remoteId = nextState.batch.remoteId || "";
+      nextState.batches = nextState.batches?.length ? nextState.batches : [nextState.batch];
+      nextState.batches = nextState.batches.map((batch, index) => ({
+        id: batch.id || (index === 0 ? nextState.batch.id : crypto.randomUUID()),
+        remoteId: batch.remoteId || "",
+        name: batch.name || `未命名梯次 ${index + 1}`,
+        foundDate: batch.foundDate || "",
+        foundLocation: batch.foundLocation || "",
+        status: batch.status || "觀察中",
+        medicalCheck: batch.medicalCheck || ""
+      }));
+      nextState.selectedBatchId = nextState.selectedBatchId || nextState.batch.id || nextState.batches[0]?.id || "";
+      if (!nextState.batches.some(batch => batch.id === nextState.selectedBatchId)) {
+        nextState.selectedBatchId = nextState.batches[0]?.id || "";
+      }
+      nextState.batch = nextState.batches.find(batch => batch.id === nextState.selectedBatchId) || nextState.batches[0] || nextState.batch;
       nextState.kittens = (nextState.kittens || []).map((kitten, index) => ({
         ...kitten,
+        batchId: kitten.batchId || nextState.batch.id,
         remoteId: kitten.remoteId || "",
         iconIndex: Number.isInteger(kitten.iconIndex) ? kitten.iconIndex : index % CAT_ICON_PATHS.length,
         photoData: kitten.photoData || "",
@@ -1666,23 +1842,25 @@
 
     async function ensureCloudBatch() {
       if (!cloudReady()) return null;
+      const batch = currentBatch() || state.batch;
       const payload = {
         care_space_id: cloud.careSpaceId,
-        name: state.batch.name || "未命名梯次",
-        found_date: state.batch.foundDate || null,
-        found_location: state.batch.foundLocation || null,
-        status: batchStatusToEnum(state.batch.status),
-        initial_medical_check: state.batch.medicalCheck || null
+        name: batch.name || "未命名梯次",
+        found_date: batch.foundDate || null,
+        found_location: batch.foundLocation || null,
+        status: batchStatusToEnum(batch.status),
+        initial_medical_check: batch.medicalCheck || null
       };
-      if (state.batch.remoteId) {
-        const { error } = await supabaseClient.from("care_batches").update(payload).eq("id", state.batch.remoteId);
+      if (batch.remoteId) {
+        const { error } = await supabaseClient.from("care_batches").update(payload).eq("id", batch.remoteId);
         if (error) throw error;
-        cloud.batchId = state.batch.remoteId;
-        return state.batch.remoteId;
+        cloud.batchId = batch.remoteId;
+        return batch.remoteId;
       }
       const { data, error } = await supabaseClient.from("care_batches").insert(payload).select("id").single();
       if (error) throw error;
-      state.batch.remoteId = data.id;
+      batch.remoteId = data.id;
+      state.batch = batch;
       cloud.batchId = data.id;
       saveState();
       return data.id;
@@ -1749,7 +1927,26 @@
     }
 
     function currentKitten() {
-      return state.kittens.find(k => k.id === selectedId) || state.kittens[0] || null;
+      const kittens = batchKittens();
+      return kittens.find(k => k.id === selectedId) || kittens[0] || null;
+    }
+
+    function currentBatch() {
+      return state.batches?.find(batch => batch.id === selectedBatchId) || state.batches?.[0] || state.batch || null;
+    }
+
+    function batchKittens(batchId = selectedBatchId) {
+      return (state.kittens || []).filter(kitten => kitten.batchId === batchId);
+    }
+
+    function syncActiveBatch() {
+      const batch = currentBatch();
+      if (!batch) return;
+      selectedBatchId = batch.id;
+      state.selectedBatchId = batch.id;
+      state.batch = batch;
+      const kittens = batchKittens(batch.id);
+      if (!kittens.some(kitten => kitten.id === selectedId)) selectedId = kittens[0]?.id || "";
     }
 
     function formatTime(value) {
@@ -1812,8 +2009,9 @@
     }
 
     function render() {
-      if (!selectedId && state.kittens[0]) selectedId = state.kittens[0].id;
+      syncActiveBatch();
       renderSession();
+      renderBatchList();
       renderBatch();
       renderList();
       renderQuickSelect();
@@ -1831,8 +2029,36 @@
       if (name && !caretaker.value) caretaker.value = name;
     }
 
+    function renderBatchList() {
+      const batches = state.batches || [];
+      els.activeBatchLabel.textContent = currentBatch()?.name || "尚未建立梯次";
+      if (!batches.length) {
+        els.batchList.innerHTML = `<div class="empty">先新增第一個梯次</div>`;
+        return;
+      }
+      els.batchList.innerHTML = batches.map(batch => {
+        const count = batchKittens(batch.id).length;
+        const meta = [batch.foundDate, batch.foundLocation, batch.status].filter(Boolean).join("｜") || "尚未填寫梯次資料";
+        return `
+          <button class="batch-card ${batch.id === selectedBatchId ? "active" : ""}" type="button" data-batch-id="${batch.id}">
+            <strong>${escapeHtml(batch.name || "未命名梯次")}</strong>
+            <span>${escapeHtml(meta)}</span>
+            <span>${count} 隻奶貓</span>
+          </button>
+        `;
+      }).join("");
+      els.batchList.querySelectorAll("[data-batch-id]").forEach(button => {
+        button.addEventListener("click", () => {
+          selectedBatchId = button.dataset.batchId;
+          state.selectedBatchId = selectedBatchId;
+          selectedId = "";
+          render();
+        });
+      });
+    }
+
     function renderBatch() {
-      const batch = state.batch || {};
+      const batch = currentBatch() || {};
       document.getElementById("batchName").value = batch.name || "";
       document.getElementById("foundDate").value = batch.foundDate || "";
       document.getElementById("foundLocation").value = batch.foundLocation || "";
@@ -1842,11 +2068,12 @@
     }
 
     function renderQuickSelect() {
-      els.quickKittenSelect.innerHTML = state.kittens.length
-        ? state.kittens.map(kitten => `<option value="${kitten.id}">${escapeHtml(kitten.name)}｜${kitten.days}天｜${escapeHtml(kitten.size)}</option>`).join("")
+      const kittens = batchKittens();
+      els.quickKittenSelect.innerHTML = kittens.length
+        ? kittens.map(kitten => `<option value="${kitten.id}">${escapeHtml(kitten.name)}｜${kitten.days}天｜${escapeHtml(kitten.size)}</option>`).join("")
         : `<option value="">尚未新增奶貓</option>`;
       els.quickKittenSelect.value = selectedId || "";
-      els.quickKittenSelect.disabled = !state.kittens.length;
+      els.quickKittenSelect.disabled = !kittens.length;
     }
 
     function catFaceSvg(index) {
@@ -1877,13 +2104,20 @@
     }
 
     function renderList() {
-      els.kittenCount.textContent = `${state.kittens.length} / 6`;
-      els.kittenList.innerHTML = "";
-      if (!state.kittens.length) {
-        els.kittenList.innerHTML = `<div class="empty">先新增第一隻奶貓</div>`;
+      const kittens = batchKittens();
+      els.kittenCount.textContent = `${kittens.length} / 6`;
+      els.mobileKittenCount.textContent = `${kittens.length} / 6`;
+      renderKittenListInto(els.kittenList, kittens);
+      renderKittenListInto(els.mobileKittenList, kittens);
+    }
+
+    function renderKittenListInto(container, kittens) {
+      container.innerHTML = "";
+      if (!kittens.length) {
+        container.innerHTML = `<div class="empty">這個梯次還沒有奶貓</div>`;
         return;
       }
-      state.kittens.forEach(kitten => {
+      kittens.forEach(kitten => {
         const last = latestRecord(kitten);
         const due = minutesUntilNext(kitten);
         const button = document.createElement("button");
@@ -1907,7 +2141,20 @@
           selectedId = kitten.id;
           render();
         });
-        els.kittenList.appendChild(button);
+        const wrap = document.createElement("div");
+        wrap.className = "kitten-tab-wrap";
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "kitten-delete";
+        deleteButton.title = `刪除 ${kitten.name}`;
+        deleteButton.setAttribute("aria-label", `刪除 ${kitten.name}`);
+        deleteButton.innerHTML = `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/></svg>`;
+        deleteButton.addEventListener("click", event => {
+          event.stopPropagation();
+          removeKitten(kitten);
+        });
+        wrap.append(button, deleteButton);
+        container.appendChild(wrap);
       });
     }
 
@@ -1984,8 +2231,18 @@
             <span class="chip ${record.poop ? "ok" : "warn"}">${record.poop ? `便便：${escapeHtml(record.stool)}` : "無便便"}</span>
           </div>
           ${record.note ? `<div class="note">${escapeHtml(record.note)}</div>` : ""}
+          <div class="event-actions">
+            <button class="ghost-btn" type="button" data-edit-record="${record.id}">修改</button>
+            <button class="ghost-btn" type="button" data-merge-feed="${record.id}">加餵併入</button>
+          </div>
         </article>
       `).join("");
+      els.timeline.querySelectorAll("[data-edit-record]").forEach(button => {
+        button.addEventListener("click", () => startEditCareRecord(kitten, button.dataset.editRecord));
+      });
+      els.timeline.querySelectorAll("[data-merge-feed]").forEach(button => {
+        button.addEventListener("click", () => mergeExtraFeeding(kitten, button.dataset.mergeFeed));
+      });
     }
 
     function renderFormulaList(kitten) {
@@ -2007,6 +2264,72 @@
           ${item.note ? `<div class="note">${escapeHtml(item.note)}</div>` : ""}
         </article>
       `).join("");
+    }
+
+    function applyRecordToForm(record) {
+      document.getElementById("careEditId").value = record.id || "";
+      document.getElementById("careTime").value = toLocalInputValue(record.time);
+      document.getElementById("caretaker").value = record.caretaker || state.session?.caregiverName || "";
+      document.getElementById("milkAmount").value = record.milk ?? "";
+      document.getElementById("weight").value = record.weight ?? "";
+      document.getElementById("pee").checked = Boolean(record.pee);
+      document.getElementById("poop").checked = Boolean(record.poop);
+      document.getElementById("note").value = record.note || "";
+      selectedStool = record.stool || "無";
+      document.querySelectorAll("[data-stool]").forEach(el => el.classList.toggle("active", el.dataset.stool === selectedStool));
+      document.getElementById("mergeRecent").checked = false;
+      document.getElementById("careSubmitBtn").lastChild.textContent = " 更新本次紀錄";
+    }
+
+    function toLocalInputValue(value) {
+      const date = value ? new Date(value) : new Date();
+      date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+      return date.toISOString().slice(0, 16);
+    }
+
+    function resetCareForm(keepCaretaker = true) {
+      document.getElementById("careEditId").value = "";
+      document.getElementById("milkAmount").value = "";
+      document.getElementById("weight").value = "";
+      document.getElementById("pee").checked = false;
+      document.getElementById("poop").checked = false;
+      document.getElementById("note").value = "";
+      document.getElementById("mergeRecent").checked = true;
+      selectedStool = "無";
+      document.querySelectorAll("[data-stool]").forEach(el => el.classList.toggle("active", el.dataset.stool === "無"));
+      document.getElementById("careSubmitBtn").lastChild.textContent = " 儲存本次紀錄";
+      setDateTimeNow();
+      if (keepCaretaker && state.session?.caregiverName) document.getElementById("caretaker").value = state.session.caregiverName;
+    }
+
+    function startEditCareRecord(kitten, recordId) {
+      const record = kitten.records.find(item => item.id === recordId);
+      if (!record) return;
+      applyRecordToForm(record);
+      document.getElementById("careForm").scrollIntoView({ behavior: "smooth", block: "start" });
+      showToast("已載入這筆紀錄，可直接修改");
+    }
+
+    function mergeRecordValues(target, incoming) {
+      target.milk = Number(target.milk || 0) + Number(incoming.milk || 0);
+      target.weight = incoming.weight || target.weight || "";
+      target.pee = Boolean(target.pee || incoming.pee);
+      target.poop = Boolean(target.poop || incoming.poop);
+      target.stool = incoming.poop ? incoming.stool : target.stool;
+      const extraNote = incoming.note?.trim();
+      if (extraNote) target.note = target.note ? `${target.note}\n補記：${extraNote}` : extraNote;
+    }
+
+    function mergeExtraFeeding(kitten, recordId) {
+      const record = kitten.records.find(item => item.id === recordId);
+      if (!record) return;
+      const amount = Number(prompt(`要併入 ${kitten.name} 這次餵食的奶量 ml？`, "5"));
+      if (!amount || amount < 0) return;
+      record.milk = Number(record.milk || 0) + amount;
+      record.note = record.note ? `${record.note}\n加餵 ${amount} ml` : `加餵 ${amount} ml`;
+      saveState();
+      render();
+      showToast(`已併入同一次餵食，共 ${record.milk} ml`);
     }
 
     function renderWeightChart(kitten) {
@@ -2058,8 +2381,9 @@
     }
 
     function renderHandoff() {
-      if (!state.kittens.length) {
-        els.handoffBox.textContent = "尚未建立奶貓資料。";
+      const kittens = batchKittens();
+      if (!kittens.length) {
+        els.handoffBox.textContent = "目前梯次尚未建立奶貓資料。";
         return;
       }
       const lines = [];
@@ -2072,7 +2396,7 @@
       if (state.batch?.status) lines.push(`整體狀態：${state.batch.status}`);
       if (state.batch?.medicalCheck) lines.push(`初步醫療檢查：${state.batch.medicalCheck}`);
       lines.push("");
-      state.kittens.forEach(kitten => {
+      kittens.forEach(kitten => {
         const last = latestRecord(kitten);
         const weights = weightRecords(kitten);
         const lastWeight = weights[weights.length - 1] || null;
@@ -2145,7 +2469,7 @@
 
     function openKittenModal(mode) {
       const kitten = mode === "edit" ? currentKitten() : null;
-      const fallbackIcon = state.kittens.length % CAT_ICON_PATHS.length;
+      const fallbackIcon = batchKittens().length % CAT_ICON_PATHS.length;
       els.modalTitle.textContent = kitten ? "編輯奶貓資料" : "新增奶貓";
       document.getElementById("removeKittenBtn").style.display = kitten ? "inline-flex" : "none";
       document.getElementById("kittenId").value = kitten?.id || "";
@@ -2155,7 +2479,7 @@
       document.getElementById("kittenName").value = kitten?.name || "";
       document.getElementById("kittenDays").value = kitten?.days ?? "";
       document.getElementById("kittenSize").value = kitten?.size || "正常";
-      document.getElementById("kittenColor").value = kitten?.color || colors[state.kittens.length % colors.length];
+      document.getElementById("kittenColor").value = kitten?.color || colors[batchKittens().length % colors.length];
       document.getElementById("albumUrl").value = kitten?.albumUrl || "";
       document.getElementById("kittenMemo").value = kitten?.memo || "";
       els.modal.classList.add("show");
@@ -2203,13 +2527,53 @@
       return escapeHtml(value).replace(/`/g, "&#096;");
     }
 
+    function addBatch() {
+      const today = new Date().toISOString().slice(0, 10);
+      const batch = {
+        id: crypto.randomUUID(),
+        remoteId: "",
+        name: `新梯次 ${state.batches.length + 1}`,
+        foundDate: today,
+        foundLocation: "",
+        status: "觀察中",
+        medicalCheck: ""
+      };
+      state.batches.push(batch);
+      selectedBatchId = batch.id;
+      state.selectedBatchId = batch.id;
+      selectedId = "";
+      render();
+      document.getElementById("batchName").focus();
+      showToast("已新增梯次，先填拾獲資料");
+    }
+
+    async function removeKitten(kitten) {
+      if (!kitten) return;
+      if (!confirm(`確定刪除 ${kitten.name} 和所有紀錄？`)) return;
+      try {
+        await deleteKittenFromCloud(kitten);
+      } catch (error) {
+        showToast(error.message || "雲端刪除失敗，請稍後再試");
+        return;
+      }
+      state.kittens = state.kittens.filter(k => k.id !== kitten.id);
+      selectedId = selectedId === kitten.id ? batchKittens()[0]?.id || "" : selectedId;
+      saveState();
+      closeKittenModal();
+      render();
+      showToast("已刪除奶貓");
+    }
+
     document.getElementById("openAddBtn").addEventListener("click", () => {
-      if (state.kittens.length >= 6) {
-        showToast("一次最多 6 隻奶貓");
+      if (!currentBatch()) addBatch();
+      if (batchKittens().length >= 6) {
+        showToast("每個梯次最多 6 隻奶貓");
         return;
       }
       openKittenModal("add");
     });
+    document.getElementById("addBatchBtn").addEventListener("click", addBatch);
+    document.getElementById("addBatchInlineBtn").addEventListener("click", addBatch);
 
     document.getElementById("loginBtn").addEventListener("click", openLoginModal);
     document.getElementById("editKittenBtn").addEventListener("click", () => openKittenModal("edit"));
@@ -2320,14 +2684,23 @@
 
     document.getElementById("batchForm").addEventListener("submit", async event => {
       event.preventDefault();
-      state.batch = {
-        remoteId: state.batch.remoteId || "",
+      const batch = currentBatch() || {
+        id: crypto.randomUUID(),
+        remoteId: ""
+      };
+      Object.assign(batch, {
+        id: batch.id,
+        remoteId: batch.remoteId || "",
         name: document.getElementById("batchName").value.trim(),
         foundDate: document.getElementById("foundDate").value,
         foundLocation: document.getElementById("foundLocation").value.trim(),
         status: document.getElementById("batchStatus").value,
         medicalCheck: document.getElementById("batchMedicalCheck").value.trim()
-      };
+      });
+      if (!state.batches.some(item => item.id === batch.id)) state.batches.push(batch);
+      selectedBatchId = batch.id;
+      state.selectedBatchId = batch.id;
+      state.batch = batch;
       if (cloudReady()) {
         try {
           await ensureCloudBatch();
@@ -2372,6 +2745,7 @@
       event.preventDefault();
       const id = document.getElementById("kittenId").value;
       const payload = {
+        batchId: selectedBatchId,
         name: document.getElementById("kittenName").value.trim(),
         days: Number(document.getElementById("kittenDays").value),
         size: document.getElementById("kittenSize").value,
@@ -2406,20 +2780,7 @@
     document.getElementById("removeKittenBtn").addEventListener("click", async () => {
       const editingId = document.getElementById("kittenId").value;
       const kitten = state.kittens.find(k => k.id === editingId) || currentKitten();
-      if (!kitten) return;
-      if (!confirm(`確定刪除 ${kitten.name} 和所有紀錄？`)) return;
-      try {
-        await deleteKittenFromCloud(kitten);
-      } catch (error) {
-        showToast(error.message || "雲端刪除失敗，請稍後再試");
-        return;
-      }
-      state.kittens = state.kittens.filter(k => k.id !== kitten.id);
-      selectedId = selectedId === kitten.id ? state.kittens[0]?.id || "" : selectedId;
-      saveState();
-      closeKittenModal();
-      render();
-      showToast("已刪除奶貓");
+      await removeKitten(kitten);
     });
 
     document.getElementById("stoolGroup").addEventListener("click", event => {
@@ -2443,8 +2804,9 @@
       event.preventDefault();
       const kitten = currentKitten();
       if (!kitten) return;
+      const editingId = document.getElementById("careEditId").value;
       const record = {
-        id: crypto.randomUUID(),
+        id: editingId || crypto.randomUUID(),
         time: new Date(document.getElementById("careTime").value).toISOString(),
         caretaker: document.getElementById("caretaker").value.trim() || state.session?.caregiverName || "",
         milk: Number(document.getElementById("milkAmount").value || 0),
@@ -2454,8 +2816,22 @@
         stool: document.getElementById("poop").checked ? selectedStool : "無",
         note: document.getElementById("note").value.trim()
       };
-      kitten.records.push(record);
-      if (cloudReady()) {
+      let toastMessage = "照護紀錄已儲存於本機";
+      if (editingId) {
+        const index = kitten.records.findIndex(item => item.id === editingId);
+        if (index >= 0) kitten.records[index] = record;
+        toastMessage = "照護紀錄已更新";
+      } else {
+        const recent = latestRecord(kitten);
+        const shouldMerge = recent && document.getElementById("mergeRecent").checked && Math.abs(new Date(record.time) - new Date(recent.time)) <= 30 * 60 * 1000;
+        if (shouldMerge) {
+          mergeRecordValues(recent, record);
+          toastMessage = "已併入 30 分鐘內同一次餵食";
+        } else {
+          kitten.records.push(record);
+        }
+      }
+      if (cloudReady() && !editingId) {
         try {
           await syncCareRecordToCloud(kitten, record);
           showToast("照護紀錄已同步到雲端");
@@ -2463,16 +2839,9 @@
           showToast(error.message || "雲端同步失敗");
         }
       }
-      document.getElementById("milkAmount").value = "";
-      document.getElementById("weight").value = "";
-      document.getElementById("pee").checked = false;
-      document.getElementById("poop").checked = false;
-      document.getElementById("note").value = "";
-      selectedStool = "無";
-      document.querySelectorAll("[data-stool]").forEach(el => el.classList.toggle("active", el.dataset.stool === "無"));
-      setDateTimeNow();
+      resetCareForm();
       render();
-      if (!cloudReady()) showToast("照護紀錄已儲存於本機");
+      if (!cloudReady() || editingId) showToast(toastMessage);
     });
 
     document.getElementById("formulaForm").addEventListener("submit", event => {
