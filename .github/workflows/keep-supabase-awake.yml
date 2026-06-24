@@ -1,0 +1,30 @@
+name: Keep Supabase Awake
+
+# 每 3 天自動戳一次資料庫，避免免費方案閒置 7 天被暫停。
+# 也可以到 GitHub 的 Actions 分頁手動按 "Run workflow" 立即執行一次。
+
+on:
+  schedule:
+    - cron: "0 1 */3 * *"   # 每 3 天的 UTC 01:00（約台灣早上 9 點）執行
+  workflow_dispatch: {}       # 允許手動觸發
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        run: |
+          echo "戳一下 Supabase，維持專案活躍…"
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://fcstpyiggvhduaztwlrf.supabase.co/rest/v1/keep_alive?select=pinged_at" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}")
+          echo "回應狀態碼：$HTTP_CODE"
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ 成功，資料庫活躍計時器已重置"
+          else
+            echo "⚠️ 狀態碼非 200，請檢查 anon key 或專案狀態"
+            exit 1
+          fi
+        env:
+          SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjc3RweWlnZ3ZoZHVhenR3bHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMzkyODgsImV4cCI6MjA5NzYxNTI4OH0.aPKpftMYWMPGcFUOT8E_3mlVHgYjasZinCyfMx9w_h4
