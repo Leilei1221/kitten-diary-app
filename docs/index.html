@@ -1433,6 +1433,7 @@
         batch_id: batchId,
         name: kitten.name,
         days_old: kitten.days || null,
+        days_base_date: kitten.daysBaseDate || null,
         size: sizeToEnum(kitten.size),
         icon_index: kitten.iconIndex || 0,
         cover_photo_path: photoPath || null,
@@ -1623,6 +1624,8 @@
         batchId: kitten.batch_id || fallbackBatch.id,
         name: kitten.name || `奶貓 ${index + 1}`,
         days: kitten.days_old || 0,
+        daysBaseDate: kitten.days_base_date || null,
+        createdAt: kitten.created_at || null,
         size: enumToSize(kitten.size),
         color: colors[index % colors.length],
         iconIndex: Number.isInteger(kitten.icon_index) ? kitten.icon_index : index % CAT_ICON_PATHS.length,
@@ -1734,6 +1737,21 @@
       return [...kitten.records].sort((a, b) => new Date(b.time) - new Date(a.time))[0] || null;
     }
 
+    // 動態年齡：以「登記當時的天數」為基準，自動加上之後經過的天數
+    function kittenAgeDays(kitten) {
+      if (!kitten) return 0;
+      const base = Number(kitten.days) || 0;
+      // 基準日：優先用 daysBaseDate；沒有就用 createdAt；都沒有就當作今天（不增減）
+      const baseDateStr = kitten.daysBaseDate || kitten.createdAt || null;
+      if (!baseDateStr) return base;
+      const baseDate = new Date(baseDateStr);
+      if (isNaN(baseDate)) return base;
+      // 用「日期」為單位計算經過天數（忽略時分，避免時區誤差）
+      const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const elapsed = Math.floor((startOfDay(new Date()) - startOfDay(baseDate)) / 86400000);
+      return base + Math.max(0, elapsed);
+    }
+
     function weightRecords(kitten) {
       return [...kitten.records]
         .filter(record => record.weight)
@@ -1834,7 +1852,7 @@
     function renderQuickSelect() {
       const kittens = batchKittens();
       els.quickKittenSelect.innerHTML = kittens.length
-        ? kittens.map(kitten => `<option value="${kitten.id}">${escapeHtml(kitten.name)}｜${kitten.days}天｜${escapeHtml(kitten.size)}</option>`).join("")
+        ? kittens.map(kitten => `<option value="${kitten.id}">${escapeHtml(kitten.name)}｜${kittenAgeDays(kitten)}天｜${escapeHtml(kitten.size)}</option>`).join("")
         : `<option value="">尚未新增奶貓</option>`;
       els.quickKittenSelect.value = selectedId || "";
       els.quickKittenSelect.disabled = !kittens.length;
@@ -1868,7 +1886,7 @@
           <div>
             <div class="tab-name">${escapeHtml(kitten.name)}</div>
             <div class="tab-meta">
-              <span>${kitten.days} 天</span>
+              <span>${kittenAgeDays(kitten)} 天</span>
               <span>${escapeHtml(kitten.size)}</span>
               <span class="${due !== null && due <= 0 ? "due" : ""}">${last ? nextFeedText(kitten) : "尚未餵奶"}</span>
             </div>
@@ -1927,7 +1945,7 @@
       const lastWeight = weights[weights.length - 1] || null;
       const previousWeight = weights[weights.length - 2] || null;
       const delta = lastWeight && previousWeight ? lastWeight.weight - previousWeight.weight : null;
-      els.heroTitle.textContent = `${kitten.name}，${kitten.days} 天，體型${kitten.size}`;
+      els.heroTitle.textContent = `${kitten.name}，${kittenAgeDays(kitten)} 天，體型${kitten.size}`;
       els.heroText.textContent = `${state.batch?.name || "目前梯次"}｜${kitten.memo || "這裡會顯示固定注意事項，交班時也會帶入摘要。"}`;
       els.heroPhoto.src = kittenAvatarSrc(kitten);
       els.heroPhotoFrame.classList.toggle("placeholder", !kitten.photoData);
@@ -2140,7 +2158,7 @@
         const previousWeight = weights[weights.length - 2] || null;
         const formula = latestFormula(kitten);
         const medical = latestMedical(kitten);
-        lines.push(`${kitten.name}｜${kitten.days}天｜體型${kitten.size}`);
+        lines.push(`${kitten.name}｜${kittenAgeDays(kitten)}天｜體型${kitten.size}`);
         lines.push(`下一餐：${nextFeedText(kitten)}`);
         if (last) {
           lines.push(`上次：${formatTime(last.time)}，${last.milk || "--"} ml，${last.pee ? "有尿" : "無尿"}，${last.poop ? `便便${last.stool}` : "無便"}`);
@@ -2214,7 +2232,7 @@
       renderPhotoPreview(kitten?.photoData || "");
       document.getElementById("kittenPhotoFile").value = "";
       document.getElementById("kittenName").value = kitten?.name || "";
-      document.getElementById("kittenDays").value = kitten?.days ?? "";
+      document.getElementById("kittenDays").value = kitten ? kittenAgeDays(kitten) : "";
       document.getElementById("kittenSize").value = kitten?.size || "正常";
       document.getElementById("kittenColor").value = kitten?.color || colors[batchKittens().length % colors.length];
       document.getElementById("albumUrl").value = kitten?.albumUrl || "";
@@ -2740,10 +2758,12 @@
     document.getElementById("kittenForm").addEventListener("submit", async event => {
       event.preventDefault();
       const id = document.getElementById("kittenId").value;
+      const todayStr = new Date().toISOString().slice(0, 10);
       const payload = {
         batchId: selectedBatchId,
         name: document.getElementById("kittenName").value.trim(),
         days: Number(document.getElementById("kittenDays").value),
+        daysBaseDate: todayStr,
         size: document.getElementById("kittenSize").value,
         color: document.getElementById("kittenColor").value,
         iconIndex: Number(document.getElementById("kittenIconIndex").value || 0),
