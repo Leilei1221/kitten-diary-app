@@ -873,6 +873,17 @@
           </div>
         </section>
 
+        <section class="content-grid" id="sec-milk" style="grid-template-columns: 1fr;">
+          <div class="panel">
+            <div class="section-title">
+              <h2 class="title-with-icon"><svg class="title-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2h6v4l3 4v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V10l3-4V2Z"/><path d="M9 6h6"/><path d="M8 14h8"/></svg>每日奶量總和</h2>
+              <span class="count" id="milkSummary">最近 7 天</span>
+            </div>
+            <div class="weight-strip" id="milkChart"></div>
+            <p class="note" id="milkTargetNote" style="margin-top:12px"></p>
+          </div>
+        </section>
+
         <section class="content-grid" id="sec-weight">
           <div class="panel">
             <div class="section-title">
@@ -967,9 +978,9 @@
       <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2h4v5l4 5v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-8l4-5V2Z"/><path d="M8 14h8"/></svg>
       餵奶
     </button>
-    <button class="nav-item" type="button" data-nav="sec-weight">
+    <button class="nav-item" type="button" data-nav="sec-milk">
       <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="m7 15 4-5 3 3 5-7"/></svg>
-      體重醫療
+      奶量體重
     </button>
     <button class="nav-item" type="button" data-nav="sec-album">
       <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v4H7z"/><path d="M5 7h14v14H5z"/><path d="M8 12h8M8 16h5"/></svg>
@@ -1187,6 +1198,9 @@
       timeline: document.getElementById("timeline"),
       weightChart: document.getElementById("weightChart"),
       weightSummary: document.getElementById("weightSummary"),
+      milkChart: document.getElementById("milkChart"),
+      milkSummary: document.getElementById("milkSummary"),
+      milkTargetNote: document.getElementById("milkTargetNote"),
       medicalList: document.getElementById("medicalList"),
       formulaList: document.getElementById("formulaList"),
       handoffBox: document.getElementById("handoffBox"),
@@ -1935,6 +1949,9 @@
         els.pottyStat.textContent = "--";
         els.albumStat.textContent = "--";
         els.timeline.innerHTML = `<div class="empty">目前沒有奶貓資料</div>`;
+        els.milkChart.innerHTML = `<div class="empty">目前沒有奶量資料</div>`;
+        els.milkSummary.textContent = "尚未記錄";
+        els.milkTargetNote.textContent = "";
         els.weightChart.innerHTML = `<div class="empty">目前沒有體重資料</div>`;
         els.medicalList.innerHTML = `<div class="empty">目前沒有醫療紀錄</div>`;
         els.formulaList.innerHTML = `<div class="empty">目前沒有奶粉資料</div>`;
@@ -1963,6 +1980,7 @@
         : "把 Google 相簿分享連結貼在奶貓資料裡，未來送養時就能直接傳給新家庭。";
       renderTimeline(kitten);
       renderFormulaList(kitten);
+      renderMilkChart(kitten);
       renderWeightChart(kitten);
       renderMedicalList(kitten);
     }
@@ -2112,6 +2130,67 @@
           </div>
         `;
       }).join("");
+    }
+
+    function renderMilkChart(kitten) {
+      // 把每筆餵奶紀錄依「日期」分組加總
+      const byDay = new Map();
+      kitten.records.forEach(record => {
+        const milk = Number(record.milk) || 0;
+        if (milk <= 0) return;
+        const d = new Date(record.time);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        byDay.set(key, (byDay.get(key) || 0) + milk);
+      });
+      const days = [...byDay.entries()]
+        .sort((a, b) => new Date(a[0]) - new Date(b[0]))
+        .slice(-7); // 最近 7 天
+
+      if (!days.length) {
+        els.milkSummary.textContent = "尚未記錄";
+        els.milkChart.innerHTML = `<div class="empty">在照護紀錄填入奶量後，這裡會顯示每天的總奶量。</div>`;
+        els.milkTargetNote.textContent = "";
+        return;
+      }
+
+      // 建議每日攝取量：以最近體重估算（奶貓約為體重的 20%）
+      const weights = weightRecords(kitten);
+      const latestWeight = weights[weights.length - 1]?.weight || 0;
+      const target = latestWeight ? Math.round(latestWeight * 0.2) : 0;
+
+      const totals = days.map(d => d[1]);
+      const max = Math.max(...totals, target || 0);
+      const todayTotal = totals[totals.length - 1];
+
+      els.milkSummary.textContent = `今日 ${formatMilk(todayTotal)} ml`;
+
+      els.milkChart.innerHTML = days.map(([dateKey, total]) => {
+        const ratio = max === 0 ? 0 : total / max;
+        const height = 14 + Math.round(ratio * 62);
+        const enough = target > 0 && total >= target;
+        const barColor = target > 0
+          ? (enough ? "linear-gradient(180deg, var(--ok), #4f9a64)" : "linear-gradient(180deg, var(--warn), var(--brand-dark))")
+          : "linear-gradient(180deg, var(--brand), var(--brand-dark))";
+        const md = dateKey.slice(5).replace("-", "/");
+        return `
+          <div class="weight-day">
+            <div class="weight-bar-wrap"><div class="weight-bar" style="height:${height}px;background:${barColor}"></div></div>
+            <div class="weight-value">${formatMilk(total)}</div>
+            <div>${md}</div>
+          </div>
+        `;
+      }).join("");
+
+      if (target > 0) {
+        els.milkTargetNote.innerHTML = `參考每日建議量約 <strong>${target} ml</strong>（依最近體重 ${latestWeight}g 的 20% 估算）。<span style="color:var(--ok)">綠色</span>代表達標、<span style="color:var(--warn)">橘色</span>代表偏少。實際需求請依獸醫建議與奶貓食慾調整。`;
+      } else {
+        els.milkTargetNote.textContent = "填入體重後，這裡會自動估算每日建議奶量並標示是否喝夠。";
+      }
+    }
+
+    function formatMilk(value) {
+      const n = Number(value) || 0;
+      return Number.isInteger(n) ? String(n) : n.toFixed(1);
     }
 
     function renderMedicalList(kitten) {
