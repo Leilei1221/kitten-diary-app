@@ -200,6 +200,26 @@
       box-shadow: 0 8px 22px rgba(232, 145, 90, .22);
     }
 
+    /* 已歿奶貓：灰階、低調保留 */
+    .kitten-tab.memorial {
+      background: #f4f1ee;
+      border-color: #e2dcd5;
+      box-shadow: none;
+    }
+    .kitten-tab.memorial .avatar { filter: grayscale(1); opacity: .7; }
+    .kitten-tab.memorial .tab-name { color: var(--muted); }
+    .kitten-tab.memorial .tab-name::before { content: "🕊️ "; }
+    .kitten-tab.memorial.active {
+      border-color: #c9bfb4;
+      background: #efeae5;
+      box-shadow: 0 6px 18px rgba(120,103,91,.12);
+    }
+    .memorial-badge {
+      display: inline-flex; align-items: center; min-height: 24px; padding: 0 9px;
+      border-radius: var(--r-pill); background: #e9e3dc; color: #8a7a6b;
+      font-size: 11px; font-weight: 700; border: 1px solid #ddd4ca;
+    }
+
     .avatar {
       width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center;
       color: #5a4a3e; font-weight: 800; border: 2px solid #fff; position: relative;
@@ -598,6 +618,10 @@
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4z"/><path d="M8 7V4h8v3"/><path d="M12 11v6M9 14h6"/></svg>
           <span>新增梯次</span>
         </button>
+        <button class="ghost-btn" id="syncBtn" type="button" title="從雲端抓取最新紀錄">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/><path d="M3 12A9 9 0 0 1 18 5.3L21 8"/><path d="M21 3v5h-5"/></svg>
+          <span>同步</span>
+        </button>
         <button class="primary-btn" id="openAddBtn" type="button">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
           <span>新增奶貓</span>
@@ -961,6 +985,19 @@
             <div class="handoff" id="handoffBox"></div>
           </div>
         </section>
+
+        <section class="content-grid" id="sec-export" style="grid-template-columns: 1fr;">
+          <div class="panel">
+            <div class="section-title">
+              <h2 class="title-with-icon"><svg class="title-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>匯出成長日記</h2>
+              <button class="primary-btn" id="exportExcelBtn" type="button">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="m9 13 2 2 4-4"/></svg>
+                匯出 Excel
+              </button>
+            </div>
+            <p class="note">把目前所有奶貓的基本資料、餵奶照護、體重、奶粉與醫療紀錄，整理成一個多分頁的 Excel 檔（.xlsx）。可直接用 Excel 開啟，或上傳到 Google 雲端硬碟後用 Google 試算表開啟。斷奶後不常登入時，也能留一份完整的成長紀錄。</p>
+          </div>
+        </section>
       </div>
     </main>
   </div>
@@ -1042,6 +1079,19 @@
           <label for="kittenMemo">固定注意事項</label>
           <textarea id="kittenMemo" placeholder="例如：右眼清潔、喝奶較慢、保溫要注意"></textarea>
         </div>
+        <details class="advanced-settings" id="memorialBox">
+          <summary>標記已歿（送別這個孩子）</summary>
+          <div class="form-grid">
+            <div class="field full">
+              <label class="check"><input id="kittenPassed" type="checkbox"> 這個孩子已經離開了</label>
+            </div>
+            <div class="field full" id="passedDateField" style="display:none">
+              <label for="kittenPassedDate">離開日期（可不填）</label>
+              <input id="kittenPassedDate" type="date">
+              <p class="note" style="margin-top:8px">標記後，牠會移到同胎的尾端、以灰色卡片保留，讓我們記得牠曾經來過。所有紀錄都會保留。</p>
+            </div>
+          </div>
+        </details>
         <div class="modal-actions field full">
           <button class="ghost-btn" id="closeModalBtn" type="button">取消</button>
           <button class="danger-btn" id="removeKittenBtn" type="button">刪除奶貓</button>
@@ -1152,6 +1202,7 @@
 
   <div class="toast" id="toast">已儲存</div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
     const STORAGE_KEY = "kitten-diary-v1";
     const CLOUD_CONFIG_KEY = "kitten-diary-supabase-config-v1";
@@ -1452,7 +1503,8 @@
         icon_index: kitten.iconIndex || 0,
         cover_photo_path: photoPath || null,
         google_album_url: kitten.albumUrl || null,
-        fixed_notes: kitten.memo || null
+        fixed_notes: kitten.memo || null,
+        passed_away_date: kitten.passedDate || null
       };
       if (kitten.remoteId) {
         const { error } = await supabaseClient.from("kittens").update(payload).eq("id", kitten.remoteId);
@@ -1647,6 +1699,7 @@
         photoData: kitten.cover_photo_path ? await signedPhotoUrl(kitten.cover_photo_path) : "",
         albumUrl: kitten.google_album_url || "",
         memo: kitten.fixed_notes || "",
+        passedDate: kitten.passed_away_date || "",
         records: [],
         formulaRecords: [],
         medicalRecords: []
@@ -1716,7 +1769,14 @@
     }
 
     function batchKittens(batchId = selectedBatchId) {
-      return (state.kittens || []).filter(kitten => kitten.batchId === batchId);
+      return (state.kittens || [])
+        .filter(kitten => kitten.batchId === batchId)
+        .sort((a, b) => {
+          // 在世的排前面，已歿的排尾端；同組維持原本順序
+          const aGone = a.passedDate ? 1 : 0;
+          const bGone = b.passedDate ? 1 : 0;
+          return aGone - bGone;
+        });
     }
 
     function syncActiveBatch() {
@@ -1760,9 +1820,10 @@
       if (!baseDateStr) return base;
       const baseDate = new Date(baseDateStr);
       if (isNaN(baseDate)) return base;
-      // 用「日期」為單位計算經過天數（忽略時分，避免時區誤差）
+      // 已歿的孩子，天數凍結在離開那天；否則算到今天
+      const endDate = kitten.passedDate ? new Date(kitten.passedDate) : new Date();
       const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      const elapsed = Math.floor((startOfDay(new Date()) - startOfDay(baseDate)) / 86400000);
+      const elapsed = Math.floor((startOfDay(endDate) - startOfDay(baseDate)) / 86400000);
       return base + Math.max(0, elapsed);
     }
 
@@ -1889,9 +1950,13 @@
       kittens.forEach(kitten => {
         const last = latestRecord(kitten);
         const due = minutesUntilNext(kitten);
+        const gone = Boolean(kitten.passedDate);
         const button = document.createElement("button");
         button.type = "button";
-        button.className = `kitten-tab ${kitten.id === selectedId ? "active" : ""}`;
+        button.className = `kitten-tab ${kitten.id === selectedId ? "active" : ""} ${gone ? "memorial" : ""}`;
+        const thirdLine = gone
+          ? `<span class="memorial-badge">已歿${kitten.passedDate ? `　${kitten.passedDate}` : ""}</span>`
+          : `<span class="${due !== null && due <= 0 ? "due" : ""}">${last ? nextFeedText(kitten) : "尚未餵奶"}</span>`;
         button.innerHTML = `
           <div class="avatar ${kitten.color}">
             <img src="${kittenAvatarSrc(kitten)}" alt="">
@@ -1902,7 +1967,7 @@
             <div class="tab-meta">
               <span>${kittenAgeDays(kitten)} 天</span>
               <span>${escapeHtml(kitten.size)}</span>
-              <span class="${due !== null && due <= 0 ? "due" : ""}">${last ? nextFeedText(kitten) : "尚未餵奶"}</span>
+              ${thirdLine}
             </div>
           </div>
         `;
@@ -2316,6 +2381,12 @@
       document.getElementById("kittenColor").value = kitten?.color || colors[batchKittens().length % colors.length];
       document.getElementById("albumUrl").value = kitten?.albumUrl || "";
       document.getElementById("kittenMemo").value = kitten?.memo || "";
+      // 已歿狀態
+      const passed = Boolean(kitten?.passedDate);
+      document.getElementById("kittenPassed").checked = passed;
+      document.getElementById("kittenPassedDate").value = kitten?.passedDate || "";
+      document.getElementById("passedDateField").style.display = passed ? "grid" : "none";
+      document.getElementById("memorialBox").open = passed;
       els.modal.classList.add("show");
       setTimeout(() => document.getElementById("kittenName").focus(), 0);
     }
@@ -2583,6 +2654,34 @@
     document.getElementById("deleteBatchBtn").addEventListener("click", removeCurrentBatch);
 
     document.getElementById("loginBtn").addEventListener("click", openLoginModal);
+
+    // 手動同步：從雲端重新抓取最新資料（看見共照夥伴的更新）
+    async function syncFromCloud(silent = false) {
+      if (!cloudReady()) {
+        if (!silent) showToast("尚未登入共用空間，無法同步");
+        return false;
+      }
+      const btn = document.getElementById("syncBtn");
+      const icon = btn?.querySelector(".icon");
+      if (icon) icon.style.transition = "transform .8s ease", icon.style.transform = "rotate(360deg)";
+      try {
+        await loadCloudState();
+        render();
+        if (!silent) showToast("已同步雲端最新紀錄");
+        return true;
+      } catch (error) {
+        if (!silent) showToast(friendlyError(error) || "同步失敗，請稍後再試");
+        return false;
+      } finally {
+        if (icon) setTimeout(() => { icon.style.transition = "none"; icon.style.transform = "none"; }, 800);
+      }
+    }
+    document.getElementById("syncBtn").addEventListener("click", () => syncFromCloud(false));
+
+    // 回到分頁/視窗重新聚焦時，自動在背景同步一次
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && cloudReady()) syncFromCloud(true);
+    });
     document.getElementById("editKittenBtn").addEventListener("click", () => openKittenModal("edit"));
     document.getElementById("closeModalBtn").addEventListener("click", closeKittenModal);
 
@@ -2834,10 +2933,22 @@
       showToast("已移除相框照，記得儲存");
     });
 
+    document.getElementById("kittenPassed").addEventListener("change", event => {
+      const show = event.target.checked;
+      document.getElementById("passedDateField").style.display = show ? "grid" : "none";
+      const dateInput = document.getElementById("kittenPassedDate");
+      if (show && !dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
+      if (!show) dateInput.value = "";
+    });
+
     document.getElementById("kittenForm").addEventListener("submit", async event => {
       event.preventDefault();
       const id = document.getElementById("kittenId").value;
       const todayStr = new Date().toISOString().slice(0, 10);
+      const passedChecked = document.getElementById("kittenPassed").checked;
+      const passedDate = passedChecked
+        ? (document.getElementById("kittenPassedDate").value || todayStr)
+        : "";
       const payload = {
         batchId: selectedBatchId,
         name: document.getElementById("kittenName").value.trim(),
@@ -2848,7 +2959,8 @@
         iconIndex: Number(document.getElementById("kittenIconIndex").value || 0),
         photoData: document.getElementById("kittenPhotoData").value,
         albumUrl: document.getElementById("albumUrl").value.trim(),
-        memo: document.getElementById("kittenMemo").value.trim()
+        memo: document.getElementById("kittenMemo").value.trim(),
+        passedDate: passedDate
       };
       let kitten;
       if (id) {
@@ -3057,6 +3169,124 @@
       renderHandoff();
       showToast("交班摘要已更新");
     });
+
+    /* ===== 新增：一鍵匯出成長日記為 Excel ===== */
+    function exportGrowthDiary() {
+      if (typeof XLSX === "undefined") {
+        showToast("匯出元件尚未載入，請稍候再試一次");
+        return;
+      }
+      const kittens = state.kittens || [];
+      if (!kittens.length) {
+        showToast("目前沒有奶貓資料可以匯出");
+        return;
+      }
+
+      const batchName = id => (state.batches.find(b => b.id === id)?.name) || "";
+      const fmt = v => v ? formatTime(v) : "";
+
+      // 分頁 1：奶貓總覽
+      const overview = kittens.map(k => {
+        const weights = weightRecords(k);
+        const lastW = weights[weights.length - 1];
+        const firstW = weights[0];
+        const last = latestRecord(k);
+        return {
+          "梯次": batchName(k.batchId),
+          "名字": k.name,
+          "目前天數": kittenAgeDays(k),
+          "登記天數": k.days,
+          "體型": k.size,
+          "目前體重(g)": lastW ? lastW.weight : "",
+          "起始體重(g)": firstW ? firstW.weight : "",
+          "體重增加(g)": (lastW && firstW) ? (lastW.weight - firstW.weight) : "",
+          "餵奶筆數": k.records.length,
+          "最後記錄": last ? fmt(last.time) : "",
+          "固定注意事項": k.memo || "",
+          "相簿連結": k.albumUrl || ""
+        };
+      });
+
+      // 分頁 2：餵奶與照護紀錄（全部奶貓，含貓名欄）
+      const care = [];
+      kittens.forEach(k => {
+        [...k.records].sort((a, b) => new Date(a.time) - new Date(b.time)).forEach(r => {
+          care.push({
+            "奶貓": k.name,
+            "時間": fmt(r.time),
+            "照顧者": r.caretaker || "",
+            "奶量(ml)": r.milk || "",
+            "體重(g)": r.weight || "",
+            "尿尿": r.pee ? "有" : "",
+            "便便": r.poop ? "有" : "",
+            "便便型態": r.poop ? r.stool : "",
+            "備註": r.note || ""
+          });
+        });
+      });
+
+      // 分頁 3：體重紀錄
+      const weight = [];
+      kittens.forEach(k => {
+        weightRecords(k).forEach(r => {
+          weight.push({ "奶貓": k.name, "時間": fmt(r.time), "體重(g)": r.weight });
+        });
+      });
+
+      // 分頁 4：醫療紀錄
+      const medical = [];
+      kittens.forEach(k => {
+        [...k.medicalRecords].sort((a, b) => new Date(a.date) - new Date(b.date)).forEach(r => {
+          medical.push({
+            "奶貓": k.name,
+            "日期": r.date || "",
+            "類型": r.type || "",
+            "項目": r.item || "",
+            "下次提醒": r.nextDue || "",
+            "紀錄": r.note || ""
+          });
+        });
+      });
+
+      // 分頁 5：奶粉紀錄
+      const formula = [];
+      kittens.forEach(k => {
+        k.formulaRecords.forEach(r => {
+          formula.push({
+            "奶貓": k.name,
+            "品牌": r.brand || "",
+            "系列/品名": r.series || "",
+            "開封日期": r.opened || "",
+            "沖泡比例": r.ratio || "",
+            "使用中": r.active ? "是" : "",
+            "備註": r.note || ""
+          });
+        });
+      });
+
+      try {
+        const wb = XLSX.utils.book_new();
+        const addSheet = (rows, name, emptyHeaders) => {
+          const ws = rows.length
+            ? XLSX.utils.json_to_sheet(rows)
+            : XLSX.utils.aoa_to_sheet([emptyHeaders]);
+          XLSX.utils.book_append_sheet(wb, ws, name);
+        };
+        addSheet(overview, "奶貓總覽", ["梯次","名字","目前天數"]);
+        addSheet(care, "餵奶照護紀錄", ["奶貓","時間","奶量(ml)"]);
+        addSheet(weight, "體重紀錄", ["奶貓","時間","體重(g)"]);
+        addSheet(medical, "醫療紀錄", ["奶貓","日期","類型"]);
+        addSheet(formula, "奶粉紀錄", ["奶貓","品牌","系列/品名"]);
+
+        const today = new Date().toISOString().slice(0, 10);
+        XLSX.writeFile(wb, `奶貓成長日記_${today}.xlsx`);
+        showToast("已匯出 Excel，請查看下載資料夾");
+      } catch (error) {
+        showToast("匯出失敗，請稍後再試");
+      }
+    }
+
+    document.getElementById("exportExcelBtn").addEventListener("click", exportGrowthDiary);
 
     /* ===== 新增：手機底部導覽切換 ===== */
     const navItems = document.querySelectorAll(".nav-item");
